@@ -49,6 +49,11 @@ class Component {
         }
     }
 
+    if(type === "squarewire"){
+        this.width = 60;
+        this.height = 60;
+    }
+
     if(type === "resistor"){
         if(orientation === "vertical"){
         this.width = 20;
@@ -465,6 +470,8 @@ function isWallCell(
 function wallColour(material){
   if(material==="wire")
     return "#a3a3a3";
+  if(material==="squarewire")
+    return "#a3a3a3";
   if(material==="resistor")
     return "#c94d4d";
   if(material==="battery")
@@ -862,6 +869,9 @@ function electronDensity(component){
     usableWidth * usableHeight;
     if(component.type === "resistor"){
     area *= 4.8;
+    }
+    else if(component.type === "squarewire"){
+    area *= 1.25;
     }
     
   return count / area;
@@ -1261,56 +1271,62 @@ function electronDensity(component){
                 setTool(tool === "pd" ? null : "pd");
             }}
             >
-            measure p.d.
+            measure p.d. ⚡
             </button>
             <button 
                 style={{background:"blue", color:"white"}}
                 onClick={()=>addComponent("wire","horizontal")}>
-                Wire ↔
+                Wire ↔️
             </button>
 
             <button
                 style={{background:"blue", color:"white"}}
                 onClick={()=>addComponent("wire","vertical")}>
-                Wire ↕ 
+                Wire ↕️
+            </button>
+
+            <button
+                style={{background:"blue", color:"white"}}
+                onClick={()=>addComponent("squarewire","vertical")}>
+                Wire ⏹️
             </button>
 
             <button
                 style={{background:"blue", color:"white"}}
                 onClick={()=>addComponent("resistor","horizontal")}>
-                Resistor ↔
+                Resistor ↔️
             </button>
 
             <button
                 style={{background:"blue", color:"white"}}
                 onClick={()=>addComponent("resistor","vertical")}>
-                Resistor  ↕ 
+                Resistor  ↕️
             </button>
 
             <button
                 style={{background:"blue", color:"white"}}
                 onClick={()=>addComponent("battery","horizontal")}>
-                Battery →
+                Battery ➡️
             </button>
 
             <button
                 style={{background:"blue", color:"white"}}
                 onClick={()=>addComponent("battery","vertical")}>
-                Battery ↓
+                Battery ⬇️
             </button>
             
             <button
                 style={{background:"red", color:"white"}}
                 onClick={deleteSelectedComponent}>
                 
-                Delete
+                Delete ✘
             </button>
 
             <button
               style={{background:"darkred", color:"white"}}
               onClick={clearComponents}
             >
-              Clear all
+              Clear all 🗑
             </button>
         </div>
 
