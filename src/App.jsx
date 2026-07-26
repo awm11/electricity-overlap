@@ -689,7 +689,6 @@ function applyBatteryForce(electrons, components){
         continue;
 
       if(component.contains(electron.x,electron.y)){
-        console.log("battery force applied");
         electron.vx +=
           component.direction.x *
           component.voltage *
