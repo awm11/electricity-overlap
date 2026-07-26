@@ -1334,9 +1334,8 @@ function electronDensity(component){
             </button>
 
             <button
-                style={{background:"red", color:"white"}}
+                style={{background:"red", color:"white", height: "23.5px"}}
                 onClick={deleteSelectedComponent}>
-                
                 Delete ✘
             </button>
 
