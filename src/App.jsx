@@ -993,7 +993,12 @@ function electronDensity(component){
       canvas.getContext("2d");
 
 
-    function frame(){
+    let lastTime = performance.now();
+
+    function frame(time){
+      const dt = (time - lastTime) / 16.67;
+      lastTime = time;
+      console.log(dt);
       ctx.clearRect(
         0,
         0,
