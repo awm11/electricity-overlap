@@ -3,7 +3,7 @@ const ElectronDensity = 0.0030;
 const GRID_SIZE = 4;
 const ELECTRON_RADIUS = 3;
 const WALL_BUFFER = ELECTRON_RADIUS + 5;
-const BatteryStrength = 0.02;
+const BatteryStrength = 0.04;
 
 class Electron {constructor(x, y) {
 
@@ -605,7 +605,7 @@ console.log(dt);
 function repelElectrons(electrons, dt){
 
   const mediumRange = 40;
-  const repulsionStrength = 0.01;
+  const repulsionStrength = 0.020;
   const VelocityDamping = Math.pow(0.995, dt);
 
   for(let i=0;i<electrons.length;i++){
@@ -989,7 +989,7 @@ function electronDensity(component){
 
 
   useEffect(()=>{
-
+    console.log("animation effect started");
     const canvas =
       canvasRef.current;
     const ctx =
@@ -1000,10 +1000,6 @@ function electronDensity(component){
 
     function frame(time){
       const dt = Math.min((time - lastTime) / 16.67, 2);
-      console.log("time is", time);
-      console.log("lastTime is", lastTime);
-      console.log("dt is", dt);
-
       lastTime = time;
 
       ctx.clearRect(
