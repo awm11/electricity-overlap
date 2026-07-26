@@ -3,7 +3,8 @@ const ElectronDensity = 0.0030;
 const GRID_SIZE = 4;
 const ELECTRON_RADIUS = 3;
 const WALL_BUFFER = ELECTRON_RADIUS + 5;
-const BatteryStrength = 0.04;
+const BatteryStrength = 0.040;
+const SIM_SPEED = 2
 
 class Electron {constructor(x, y) {
 
@@ -605,7 +606,7 @@ console.log(dt);
 function repelElectrons(electrons, dt){
 
   const mediumRange = 40;
-  const repulsionStrength = 0.020;
+  const repulsionStrength = 0.030;
   const VelocityDamping = Math.pow(0.995, dt);
 
   for(let i=0;i<electrons.length;i++){
@@ -833,6 +834,14 @@ export default function App(){
     forceUpdate(x=>x+1);
   }
 
+  function clearComponents(){
+    components.current = [];
+    electrons.current = [];
+    selectedComponent.current = null;
+    pdSelection.current = [];
+    forceUpdate(v=>v+1);
+  }
+
 function electronDensity(component){
 
   let count = 0;
@@ -986,10 +995,25 @@ function electronDensity(component){
     }
   },[]);
 
+  useEffect(()=>{
+    function keyDown(e){
+      if(e.target.tagName==="INPUT")
+        return;
 
+      if(e.key==="Delete" || e.key==="Backspace")
+        deleteSelectedComponent();
+    }
+
+    window.addEventListener("keydown", keyDown);
+
+    return ()=>{
+      window.removeEventListener("keydown", keyDown);
+    };
+  },[]);
 
   useEffect(()=>{
-    console.log("animation effect started");
+    let animationId;
+
     const canvas =
       canvasRef.current;
     const ctx =
@@ -1097,23 +1121,25 @@ function electronDensity(component){
         electron.y,
         electron.radius
         );
-
-        g.addColorStop(0,"#9fcdd4");
-        g.addColorStop(0.4,"#4aa7bc");
-        g.addColorStop(1,"#0c688a");
-
+        g.addColorStop(0,"#bff8ff");
+        g.addColorStop(0.4,"#5fd6f2");
+        g.addColorStop(1,"#0d7ea6");
         ctx.fillStyle = g;
         ctx.fill();
         }
       
       drawPDMeasurement(ctx);
       
-         requestAnimationFrame(frame);
+          animationId = requestAnimationFrame(frame);
     }
+  animationId = requestAnimationFrame(frame);
 
-   requestAnimationFrame(frame);
+  return ()=>{
+    cancelAnimationFrame(animationId);
+  };
 
   },[]);
+
 
 
 
@@ -1161,10 +1187,17 @@ function electronDensity(component){
           component,
           electrons.current
         );
-        break;
+        return;
 
       }
+      
     }
+        
+  if(tool==="pd"){
+    pdSelection.current=[];
+    setTool(null);
+    forceUpdate(v=>v+1);
+      }
   }
 
 
@@ -1271,6 +1304,13 @@ function electronDensity(component){
                 onClick={deleteSelectedComponent}>
                 
                 Delete
+            </button>
+
+            <button
+              style={{background:"darkred", color:"white"}}
+              onClick={clearComponents}
+            >
+              Clear all
             </button>
         </div>
 
