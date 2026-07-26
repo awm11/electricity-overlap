@@ -793,6 +793,13 @@ export default function App(){
   const canvasRef = useRef(null);
   const selectedComponent = useRef(null);
   const [, forceUpdate] = useState(0);
+  const canvasRect =  canvasRef.current?.getBoundingClientRect();
+  const scaleX = canvasRect
+    ? canvasRect.width / canvasRef.current.width
+    : 1;
+  const scaleY = canvasRect
+    ? canvasRect.height / canvasRef.current.height
+    : 1;
   const pdSelection = useRef([]);
 
   function addComponent(type, orientation="horizontal"){
@@ -1264,18 +1271,25 @@ function electronDensity(component){
             style={{
             pointerEvents: "none",
             position: "absolute",
+
             left:
-                selectedComponent.current.orientation === "vertical"
-                ? selectedComponent.current.x +
-                    selectedComponent.current.width - 10
-                : selectedComponent.current.x + 80,
+              selectedComponent.current.orientation === "vertical"
+              ? canvasRect.left +
+                (
+                  selectedComponent.current.x +
+                  selectedComponent.current.width - 40
+                ) * scaleX
+              : canvasRect.left +
+                (
+                  selectedComponent.current.x + 40
+                ) * scaleX,
 
             top:
                 selectedComponent.current.orientation === "vertical"
                 ? selectedComponent.current.y +
                     selectedComponent.current.height/2 - 30
                 : selectedComponent.current.y +
-                    selectedComponent.current.height + 30
+                    selectedComponent.current.height + 40
             }}
         >
             <input
