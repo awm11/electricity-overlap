@@ -1019,9 +1019,9 @@ function electronDensity(component){
         components.current
       );
 
-      // repelElectrons(
-      //   electrons.current
-      // );
+      repelElectrons(
+        electrons.current
+      );
 
       for(
         const electron of electrons.current
