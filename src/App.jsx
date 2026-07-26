@@ -36,7 +36,6 @@ class Component {
     this.placedY = y;
     this.orientation = orientation;
     this.voltage = 0;
-    
 
     if(type === "wire"){
         if(orientation === "vertical"){
@@ -79,6 +78,12 @@ class Component {
         this.height = 120;
         }
     }
+
+    if(type === "bonus-electrons"){
+        this.width = 60;
+        this.height = 60;
+    }
+
     }
 
   contains(x,y){
@@ -816,6 +821,13 @@ export default function App(){
     const component = new Component(type,830,30,orientation);
     components.current.push(component);
     component.spawnElectrons(electrons.current);
+    if(type==="bonus-electrons"){
+      component.spawnElectrons(electrons.current);
+      component.spawnElectrons(electrons.current);
+      component.spawnElectrons(electrons.current);
+      component.spawnElectrons(electrons.current);
+    }
+
     selectedComponent.current = component;
     setTool(null);
     pdSelection.current = [];
@@ -1315,6 +1327,12 @@ function electronDensity(component){
                 Battery ⬇️
             </button>
             
+            <button
+                style={{background:"gold", color:"black"}}
+                onClick={()=>addComponent("bonus-electrons","vertical")}>
+                Bonus electrons! 🌐
+            </button>
+
             <button
                 style={{background:"red", color:"white"}}
                 onClick={deleteSelectedComponent}>
