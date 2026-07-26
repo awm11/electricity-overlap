@@ -607,7 +607,7 @@ function repelElectrons(electrons, dt){
 
   const mediumRange = 40;
   const repulsionStrength = 0.030;
-  const VelocityDamping = Math.pow(0.998, dt);
+  const VelocityDamping = Math.pow(0.997, dt);
 
   for(let i=0;i<electrons.length;i++){
 
