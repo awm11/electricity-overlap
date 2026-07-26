@@ -1,14 +1,11 @@
-import { useEffect, useRef } from "react";
-
-const ElectronDensity = 0.0010;
+import { useEffect, useRef, useState } from "react";
+const ElectronDensity = 0.0030;
 const GRID_SIZE = 4;
 const ELECTRON_RADIUS = 3;
-const WALL_BUFFER = ELECTRON_RADIUS + 10;
+const WALL_BUFFER = ELECTRON_RADIUS + 5;
+const BatteryStrength = 0.02;
 
-
-class Electron {
-
-  constructor(x, y) {
+class Electron {constructor(x, y) {
 
     this.x = x;
     this.y = y;
@@ -16,31 +13,71 @@ class Electron {
     this.vy = (Math.random() - 0.5);
     this.radius = ELECTRON_RADIUS;
     this.carried = false;
+    this.carrier = null;
     this.offsetX = 0;
     this.offsetY = 0;
-    this.carrier = null;
   }
 
 }
 
 
 
+
+
 class Component {
 
-  constructor(type, x, y, width, height) {
-
+    constructor(type, x, y, orientation = "horizontal") {
     this.id = crypto.randomUUID();
     this.type = type;
     this.x = x;
     this.y = y;
-    this.width = width;
-    this.height = height;
-  }
+    this.placedX = x;
+    this.placedY = y;
+    this.orientation = orientation;
+    this.voltage = 0;
+    
 
+    if(type === "wire"){
+        if(orientation === "vertical"){
+        this.width = 60;
+        this.height = 150;
+        }
+        else{
+        this.width = 250;
+        this.height = 60;
+        }
+    }
 
+    if(type === "resistor"){
+        if(orientation === "vertical"){
+        this.width = 20;
+        this.height = 200;
+        }
+        else{
+        this.width = 200;
+        this.height = 20;
+        }
+    }
+
+    if(type === "battery"){
+        this.voltage = 1;
+        this.direction = orientation === "vertical"
+            ? {x:0, y:-1}
+            : {x:1, y:0};
+        if(orientation === "vertical"){
+        this.width = 120;
+        this.height = 180;
+        }
+        else{
+        this.width = 180;
+        this.height = 120;
+        }
+    }
+    }
 
   contains(x,y){
     return (
+
       x >= this.x &&
       x <= this.x + this.width &&
       y >= this.y &&
@@ -51,67 +88,179 @@ class Component {
 
 
 
-  spawnElectrons(electrons){
-
-    const count =
-      Math.floor(
+    spawnElectrons(electrons) {
+    const amount = Math.floor(
         this.width *
         this.height *
         ElectronDensity
-      );
+    );
 
+    const spawnWidth = Math.max(
+        0,
+        this.width - WALL_BUFFER * 2
+    );
 
-    for(let i=0;i<count;i++){
+    const spawnHeight = Math.max(
+        0,
+        this.height - WALL_BUFFER * 2
+    );
 
-      electrons.push(
-
+    for (let i = 0; i < amount; i++) {
+        electrons.push(
         new Electron(
-          this.x +
-          Math.random()*this.width,
+            this.x +
+            WALL_BUFFER +
+            Math.random() * spawnWidth,
 
-          this.y +
-          Math.random()*this.height
+            this.y +
+            WALL_BUFFER +
+            Math.random() * spawnHeight
         )
+        );
+    }
+    }
 
+drawBattery(ctx){
+
+  const positive = this.voltage >= 0;
+
+  ctx.fillStyle = "#212121";
+  ctx.fillRect(
+    this.x,
+    this.y,
+    this.width,
+    this.height
+  );
+
+  ctx.fillStyle = "#f5a623";
+
+  if(this.orientation === "vertical"){
+
+    if(positive){
+      ctx.fillRect(
+        this.x,
+        this.y + this.height*0.70,
+        this.width,
+        this.height*0.3
       );
+    }
+    else{
+      ctx.fillRect(
+        this.x,
+        this.y,
+        this.width,
+        this.height*0.3
+      );
+    }
 
+  }
+  else{
+
+    if(positive){
+      ctx.fillRect(
+        this.x,
+        this.y,
+        this.width*0.3,
+        this.height
+      );
+    }
+    else{
+      ctx.fillRect(
+        this.x + this.width*0.7,
+        this.y,
+        this.width*0.3,
+        this.height
+      );
     }
 
   }
 
+  ctx.strokeStyle = "#6e6c6c";
+  ctx.lineWidth = 4;
 
+  ctx.strokeRect(
+    this.x,
+    this.y,
+    this.width,
+    this.height
+  );
 
-  draw(ctx){
+  ctx.save();
 
-    ctx.lineWidth = 4;
+  ctx.fillStyle = "#000";
+  ctx.font = "bold 32px Arial";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
 
-    if(this.type==="battery")
-      ctx.strokeStyle="#b33";
-
-    else if(this.type==="resistor")
-      ctx.strokeStyle="#333";
-
-    else
-      ctx.strokeStyle="#888";
-
-
-    ctx.strokeRect(
-      this.x,
-      this.y,
-      this.width,
-      this.height
-    );
-
-
-    ctx.fillStyle="#000";
+  if(this.orientation === "vertical"){
 
     ctx.fillText(
-      this.type,
-      this.x + 5,
-      this.y - 8
+      positive ? "−" : "+",
+      this.x + this.width/2,
+      this.y + this.height*0.15
+    );
+
+    ctx.fillText(
+      positive ? "+" : "−",
+      this.x + this.width/2,
+      this.y + this.height*0.85
     );
 
   }
+  else{
+
+    ctx.fillText(
+      positive ? "+" : "−",
+      this.x + this.width*0.15,
+      this.y + this.height/2
+    );
+
+    ctx.fillText(
+      positive ? "−" : "+",
+      this.x + this.width*0.85,
+      this.y + this.height/2
+    );
+
+  }
+
+  ctx.restore();
+
+}
+    draw(ctx, pdSelection){
+
+    ctx.lineWidth = 4;
+
+    if(pdSelection.includes(this)){
+        ctx.strokeStyle = "limegreen";
+    }
+    else if(this.type==="battery"){
+        this.drawBattery(ctx);
+        return;
+    }
+    else if(this.type==="resistor"){
+        ctx.strokeStyle="#d9b1b1";
+    }
+    else{
+        ctx.strokeStyle="#e0e0e0";
+    }
+
+    ctx.strokeRect(
+        this.x,
+        this.y,
+        this.width,
+        this.height
+    );
+
+
+    ctx.fillStyle = "black";
+    ctx.font = "10px Arial";
+    ctx.fillText(
+        this.type,
+        this.x + 5,
+        this.y - 5
+    );    
+    }
+
 
 }
 
@@ -119,66 +268,122 @@ class Component {
 
 
 
+
+
+function createEmptyCell(){
+
+  return {
+
+    occupied:false,
+
+    material:null
+
+  };
+
+}
+
+
+
+
+
+
+
+
 function buildCircuitMap(
+
   components,
   width,
   height
+
 ){
 
   const cols =
-    Math.ceil(width / GRID_SIZE);
+    Math.ceil(
+      width / GRID_SIZE
+    );
 
   const rows =
-    Math.ceil(height / GRID_SIZE);
-
+    Math.ceil(
+      height / GRID_SIZE
+    );
 
 
   const map =
     Array.from(
-      {length: rows},
-      ()=>Array(cols).fill(false)
+      {
+        length:rows
+      },
+      ()=>
+        Array.from(
+          {
+            length:cols
+          },
+          createEmptyCell
+        )
     );
 
-
-
-  for(const c of components){
-
+  for(const component of components){
     const x1 =
-      Math.floor(c.x / GRID_SIZE);
+      Math.floor(
+        component.placedX /
+        GRID_SIZE
+      );
+
+
 
     const x2 =
       Math.floor(
-        (c.x+c.width) /
+        (component.placedX +
+        component.width)
+        /
         GRID_SIZE
       );
 
-
     const y1 =
-      Math.floor(c.y / GRID_SIZE);
+      Math.floor(
+        component.placedY /
+        GRID_SIZE
+      );
 
     const y2 =
       Math.floor(
-        (c.y+c.height) /
+        (component.placedY +
+        component.height)
+        /
         GRID_SIZE
+
       );
 
 
 
-    for(let y=y1;y<=y2;y++){
 
-      for(let x=x1;x<=x2;x++){
 
-        if(map[y]?.[x] !== undefined){
 
-          map[y][x]=true;
+    for(
+      let y=y1;
+      y<=y2;
+      y++
+    ){
+
+
+      for(
+        let x=x1;
+        x<=x2;
+        x++
+      ){
+
+        const cell =
+          map[y]?.[x];
+        if(cell){
+          cell.occupied = true;
+          cell.material =
+            component.type;
 
         }
-
       }
-
     }
-
   }
+
 
 
   return map;
@@ -187,28 +392,148 @@ function buildCircuitMap(
 
 
 
-
-
 function insideCircuit(
+
+  x,
+
+  y,
+
+  map
+
+){
+
+
+  const gx =
+
+    Math.floor(
+
+      x / GRID_SIZE
+
+    );
+
+
+
+  const gy =
+
+    Math.floor(
+
+      y / GRID_SIZE
+
+    );
+
+
+
+  return (
+
+    map[gy]?.[gx]?.occupied
+
+    ??
+
+    false
+
+  );
+
+}
+
+
+function isWallCell(
   x,
   y,
   map
 ){
 
-  const gx =
-    Math.floor(
-      x / GRID_SIZE
-    );
-
-  const gy =
-    Math.floor(
-      y / GRID_SIZE
-    );
+  const cell =
+    map[y]?.[x];
 
 
-  return map[gy]?.[gx] ?? false;
+  if(!cell?.occupied)
+    return false;
+
+  const neighbours = [
+    map[y-1]?.[x],
+    map[y+1]?.[x],
+    map[y]?.[x-1],
+    map[y]?.[x+1]
+  ];
+
+  return neighbours.some(
+    n => !n?.occupied
+  );
+}
+
+function wallColour(material){
+  if(material==="wire")
+    return "#a3a3a3";
+  if(material==="resistor")
+    return "#c94d4d";
+  if(material==="battery")
+    return "#f5d58a";
+  return "#cccccc";
+}
+
+
+
+function drawWalls(
+  ctx,
+  map,
+){
+
+  for(
+    let y=0;
+    y<map.length;
+    y++
+  ){
+
+    for(
+      let x=0;
+      x<map[y].length;
+      x++
+    ){
+
+
+      const cell =
+        map[y][x];
+
+
+
+      if(
+        cell.occupied &&
+        isWallCell(
+          x,
+          y,
+          map
+        )
+      ){
+
+        ctx.fillStyle =
+          wallColour(
+            cell.material
+          );
+
+
+
+        ctx.fillRect(
+
+          x * GRID_SIZE,
+
+          y * GRID_SIZE,
+
+          GRID_SIZE,
+
+          GRID_SIZE
+
+        );
+
+      }
+
+    }
+
+  }
 
 }
+
+
+
 
 
 
@@ -221,62 +546,49 @@ function moveElectron(
   if(electron.carried)
     return;
 
-
   const nextX =
-    electron.x + electron.vx;
+    electron.x +
+    electron.vx;
 
   const nextY =
-    electron.y + electron.vy;
-
-
+    electron.y +
+    electron.vy;
 
   const canMoveX =
+  insideCircuit(
+    electron.x +
+    electron.vx +
+    Math.sign(electron.vx) *
+    WALL_BUFFER,
+    electron.y,
+    map
+  );
+
+    const canMoveY =
     insideCircuit(
-      nextX +
-      Math.sign(electron.vx) *
-      WALL_BUFFER,
-
-      electron.y,
-
-      map
+        electron.x,
+        electron.y +
+        electron.vy +
+        Math.sign(electron.vy) *
+        WALL_BUFFER,
+        map
     );
-
-
-  const canMoveY =
-    insideCircuit(
-      electron.x,
-
-      nextY +
-      Math.sign(electron.vy) *
-      WALL_BUFFER,
-
-      map
-    );
-
 
 
   if(canMoveX){
-
-    electron.x = nextX;
-
+    electron.x =
+      nextX;
   }
   else{
-
     electron.vx *= -1;
-
   }
-
-
 
   if(canMoveY){
-
-    electron.y = nextY;
-
+    electron.y =
+      nextY;
   }
   else{
-
     electron.vy *= -1;
-
   }
 
 }
@@ -284,10 +596,15 @@ function moveElectron(
 
 
 
+
+
+
+
+
 function repelElectrons(electrons){
 
-  const mediumRange = 80;
-  const repulsionStrength = 0.02;
+  const mediumRange = 40;
+  const repulsionStrength = 0.01;
   const VelocityDamping = 0.995;
 
   for(let i=0;i<electrons.length;i++){
@@ -330,20 +647,22 @@ function repelElectrons(electrons){
         b.vy += ny*force;
       }
 
+
       // Hard collision separation
       const minimum = a.radius+b.radius;
 
-      if(distance < minimum){
+    if(distance < minimum){
 
-        const push =
-          (minimum-distance)*0.05;
+    const force =
+        (minimum-distance)*0.05;
 
-        a.x -= nx*push;
-        a.y -= ny*push;
+    a.vx -= nx*force;
+    a.vy -= ny*force;
 
-        b.x += nx*push;
-        b.y += ny*push;
-      }
+    b.vx += nx*force;
+    b.vy += ny*force;
+    }
+
     }
   }
 
@@ -358,6 +677,36 @@ function repelElectrons(electrons){
   }
 }
 
+function applyBatteryForce(electrons, components){
+  for(const component of components){
+
+    if(component.type !== "battery")
+      continue;
+
+    for(const electron of electrons){
+
+      if(electron.carried)
+        continue;
+
+      if(component.contains(electron.x,electron.y)){
+        console.log("battery force applied");
+        electron.vx +=
+          component.direction.x *
+          component.voltage *
+          BatteryStrength;
+
+        electron.vy +=
+          component.direction.y *
+          component.voltage *
+          BatteryStrength;
+
+      }
+
+    }
+
+  }
+
+}
 
 
 
@@ -371,23 +720,23 @@ function grabComponent(
 
 
     if(
+
       component.contains(
+
         electron.x,
+
         electron.y
+
       )
+
     ){
-
-      electron.carried = true;
-
+      electron.carried =
+        true;
       electron.carrier =
         component;
-
-
       electron.offsetX =
         electron.x -
         component.x;
-
-
       electron.offsetY =
         electron.y -
         component.y;
@@ -402,32 +751,26 @@ function grabComponent(
 
 
 
+
+
+
 function carryElectrons(
   electrons
 ){
-
   for(const electron of electrons){
-
     if(
       electron.carried &&
       electron.carrier
     ){
-
       electron.x =
         electron.carrier.x +
         electron.offsetX;
-
-
       electron.y =
         electron.carrier.y +
         electron.offsetY;
-
     }
-
   }
-
 }
-
 
 
 
@@ -435,117 +778,217 @@ function carryElectrons(
 function releaseElectrons(
   electrons
 ){
-
   for(const electron of electrons){
-
     electron.carried = false;
-
     electron.carrier = null;
-
   }
-
 }
-
-
-
-
-
-
 
 export default function App(){
 
-  const canvasRef =
-    useRef(null);
+  const electrons = useRef([]);
+  const dragging = useRef(null);
+  const dragOffset = useRef({x:0, y:0});
+  const [tool, setTool] = useState(null);
+  const canvasRef = useRef(null);
+  const selectedComponent = useRef(null);
+  const [, forceUpdate] = useState(0);
+  const pdSelection = useRef([]);
+
+  function addComponent(type, orientation="horizontal"){
+    const component = new Component(type,830,30,orientation);
+    components.current.push(component);
+    component.spawnElectrons(electrons.current);
+    selectedComponent.current = component;
+    setTool(null);
+    pdSelection.current = [];
+    forceUpdate(x=>x+1);
+    }
+
+  function deleteSelectedComponent(){
+    const component =
+      selectedComponent.current;
+
+    if(!component)
+      return;
+
+    components.current = components.current.filter(
+      c => c !== component
+      );
+    electrons.current = electrons.current.filter(
+        e => !component.contains(e.x,e.y)
+      );
+    selectedComponent.current = null;
+    pdSelection.current = [];
+    setTool(null);
+    forceUpdate(x=>x+1);
+  }
+
+function electronDensity(component){
+
+  let count = 0;
+  for(const electron of electrons.current){
+    if(component.contains(
+      electron.x,
+      electron.y
+    )){
+      count++;
+    }
+  }
+  const buffer = WALL_BUFFER;
+  const usableWidth =
+    component.width - buffer*2;
+  const usableHeight =
+    component.height - buffer*2;
+  let area =
+    usableWidth * usableHeight;
+    if(component.type === "resistor"){
+    area *= 4.8;
+    }
+    
+  return count / area;
+}
 
 
+  function drawX(ctx,x,y){
+    ctx.strokeStyle = "green";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x-6,y-6);
+    ctx.lineTo(x+6,y+6);
+    ctx.moveTo(x+6,y-6);
+    ctx.lineTo(x-6,y+6);
+    ctx.stroke();
+    }
+
+  function drawPDMeasurement(ctx){
+
+    if(pdSelection.current.length !== 2)
+        return;
+
+    const a = pdSelection.current[0];
+    const b = pdSelection.current[1];
+
+    const ax = a.x + a.width/2;
+    const ay = a.y + a.height/2;
+
+    const bx = b.x + b.width/2;
+    const by = b.y + b.height/2;
+
+    ctx.strokeStyle = "green";
+    ctx.lineWidth = 3;
+    ctx.setLineDash([8,8]);
+
+    ctx.beginPath();
+    ctx.moveTo(ax,ay);
+    ctx.lineTo(bx,by);
+    ctx.stroke();
+
+    // middle arrowhead
+
+    const mx = (ax + bx) / 2;
+    const my = (ay + by) / 2;
+
+    const angle = Math.atan2(by - ay, bx - ax);
+    const arrowSize = 20;
+
+    ctx.setLineDash([]);
+
+    ctx.beginPath();
+
+    ctx.moveTo(mx, my);
+
+    ctx.lineTo(
+        mx - arrowSize * Math.cos(angle - Math.PI / 6),
+        my - arrowSize * Math.sin(angle - Math.PI / 6)
+    );
+
+    ctx.lineTo(
+        mx - arrowSize * Math.cos(angle + Math.PI / 6),
+        my - arrowSize * Math.sin(angle + Math.PI / 6)
+    );
+
+    ctx.closePath();
+
+    ctx.fillStyle = "green";
+    ctx.fill();
+
+    drawX(ctx,ax,ay);
+    drawX(ctx,bx,by);
+
+}
+
+//pd calc constants
+    const densityA =
+    pdSelection.current[0]
+    ? electronDensity(pdSelection.current[0])
+    : 0;
+
+    const densityB =
+    pdSelection.current[1]
+    ? electronDensity(pdSelection.current[1])
+    : 0;
+
+    const difference =
+    densityA - densityB;
+    
+// other constants
 
   const components =
     useRef([
 
-      new Component(
-        "wire",
-        100,
-        150,
-        300,
-        60
-      ),
+    new Component(
+    "battery",
+    550,
+    350,
+    "vertical"
+    ),
 
+    new Component(
+    "wire",
+    100,
+    150
+    ),
 
-      new Component(
-        "resistor",
-        500,
-        150,
-        200,
-        25
-      ),
+    new Component(
+    "wire",
+    200,
+    450
+    ),
 
-
-      new Component(
-        "battery",
-        350,
-        350,
-        120,
-        180
-      )
+    new Component(
+    "resistor",
+    500,
+    150,
+    "vertical"
+    )
 
     ]);
 
 
 
-  const electrons =
-    useRef([]);
-
-
-
-  const dragging =
-    useRef(null);
-
-
-
-  const dragOffset =
-    useRef({
-      x:0,
-      y:0
-    });
-
-
-
-
   useEffect(()=>{
-
-    for(const component of components.current){
-
+    for(
+      const component of components.current
+    ){
       component.spawnElectrons(
         electrons.current
       );
-
     }
-
-
   },[]);
 
 
 
-
-
-
   useEffect(()=>{
-
 
     const canvas =
       canvasRef.current;
-
-
     const ctx =
       canvas.getContext("2d");
 
 
-
     function frame(){
-
-
-      ctx.fillStyle = "white";
-      ctx.fillRect(
+      ctx.clearRect(
         0,
         0,
         canvas.width,
@@ -553,279 +996,374 @@ export default function App(){
       );
 
 
-
       const map =
+
         buildCircuitMap(
           components.current,
           canvas.width,
           canvas.height
         );
 
-
-
       carryElectrons(
         electrons.current
       );
 
-
-
-      for(const electron of electrons.current){
-
-        moveElectron(
-          electron,
-          map
-        );
-
-      }
-
-
+      applyBatteryForce(
+        electrons.current,
+        components.current
+      );
 
       repelElectrons(
         electrons.current
       );
 
+      for(
+        const electron of electrons.current
+      ){
 
-
-
-      for(const component of components.current){
-        component.draw(ctx);
-        const rows = map.length;
-        const cols = map[0].length;
-
-        ctx.lineWidth = 3;
-
-        for(let y=0;y<rows;y++){
-
-          for(let x=0;x<cols;x++){
-
-            if(
-              map[y][x] &&
-              isInternalWall(x,y,map)
-            ){
-
-              ctx.strokeStyle = "cyan";
-
-              ctx.strokeRect(
-                x * GRID_SIZE,
-                y * GRID_SIZE,
-                GRID_SIZE,
-                GRID_SIZE
-              );
-
-            }
-
-          }
-
-        }
+        moveElectron(
+          electron,
+          map
+        );
       }
 
 
+      // draw components first
+      for(
+        const component of components.current
+      ){
+        component.draw(ctx, pdSelection.current);
+      }
 
-      for(const electron of electrons.current){
+      // draw generated walls
+      if(pdSelection.current.length === 0){
+        drawWalls(
+            ctx,
+            map
+        );
+        }
 
+        // draw electrons
+
+        for(const electron of electrons.current){
+
+        // Motion trail
+        ctx.beginPath();
+        ctx.moveTo(
+            electron.x,
+            electron.y
+        );
+        ctx.lineTo(
+            electron.x - electron.vx * 10,
+            electron.y - electron.vy * 10
+        );
+        ctx.strokeStyle =
+            "#4ad5f772";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Electron
 
         ctx.beginPath();
-
-
         ctx.arc(
-          electron.x,
-          electron.y,
-          electron.radius,
-          0,
-          Math.PI*2
+        electron.x,
+        electron.y,
+        electron.radius,
+        0,
+        Math.PI*2
         );
 
+        const g = ctx.createRadialGradient(
+        electron.x - electron.radius*0.35,
+        electron.y - electron.radius*0.35,
+        electron.radius*0.2,
+        electron.x,
+        electron.y,
+        electron.radius
+        );
 
-        ctx.fillStyle =
-          "#111";
+        g.addColorStop(0,"#9fcdd4");
+        g.addColorStop(0.4,"#4aa7bc");
+        g.addColorStop(1,"#0c688a");
 
-
+        ctx.fillStyle = g;
         ctx.fill();
-
-      }
-
-
-
-      requestAnimationFrame(frame);
-
+        }
+      
+      drawPDMeasurement(ctx);
+      
+         requestAnimationFrame(frame);
     }
 
-
     frame();
-
-
   },[]);
 
 
 
 
-
-
-
   function mouseDown(e){
-
+    // alert("reached mouseDown")
 
     const rect =
       canvasRef.current
       .getBoundingClientRect();
-
-
     const x =
       e.clientX -
       rect.left;
-
-
     const y =
       e.clientY -
       rect.top;
+    for(
+      const component of components.current
+    ){
+
+      if(component.contains(x,y)){
+        if(tool==="pd"){
+            if(component.type==="battery")
+            return;
+            if(pdSelection.current.length===2)
+            pdSelection.current=[];
+            pdSelection.current.push(component);
+            forceUpdate(v=>v+1);
+            return;
+        }
 
 
-
-    for(const component of components.current){
-
-
-      if(
-        component.contains(
-          x,
-          y
-        )
-      ){
-
-        dragging.current =
-          component;
-
-
-
+        selectedComponent.current = component;
+        dragging.current = component;
+        forceUpdate(v=>v+1);
+          component.placedX = -9999;
+          component.placedY = -9999;
         dragOffset.current = {
-
           x:
-          x-component.x,
-
-
+          x - component.x,
           y:
-          y-component.y
-
+          y - component.y
         };
-
-
-
         grabComponent(
           component,
           electrons.current
         );
-
-
         break;
 
       }
-
     }
-
   }
-
-
-
 
 
 
 
   function mouseMove(e){
-
-
     if(!dragging.current)
       return;
-
-
-
     const rect =
       canvasRef.current
       .getBoundingClientRect();
-
-
-
     dragging.current.x =
       e.clientX -
       rect.left -
       dragOffset.current.x;
-
-
-
     dragging.current.y =
       e.clientY -
       rect.top -
       dragOffset.current.y;
-
-
-
   }
 
 
 
-  function isInternalWall(x,y,map){
-    if(isWallCell)
-      return false;
-    const left = map[y]?.[x-1];
-    const right = map[y]?.[x+1];
-    const up = map[y-1]?.[x];
-    const down = map[y+1]?.[x];
 
-    
-    return (
-      (left && right) ||
-      (up && down)
-    );
-
-  }
-
-  function isWallCell(x,y,map){
-
-    const left = map[y]?.[x-1];
-    const right = map[y]?.[x+1];
-    const up = map[y-1]?.[x];
-    const down = map[y+1]?.[x];
-
-    return (
-      !left ||
-      !right ||
-      !up ||
-      !down
-    );
-
-  }
 
   function mouseUp(){
 
+    if(dragging.current){
 
-    dragging.current=null;
+      dragging.current.placedX =
+        dragging.current.x;
 
+      dragging.current.placedY =
+        dragging.current.y;
 
+    }
+
+    dragging.current = null;
+    forceUpdate(v=>v+1);
     releaseElectrons(
       electrons.current
     );
+
   }
+
+
+
+
+
   return (
+    
+    <>
+        <div>
+            <button
+            style={{
+                background: tool === "pd" ? "green" : "grey",
+                color: "white"
+            }}
+            onClick={()=>{
+                pdSelection.current = [];
+                setTool(tool === "pd" ? null : "pd");
+            }}
+            >
+            measure p.d.
+            </button>
+            <button 
+                style={{background:"blue", color:"white"}}
+                onClick={()=>addComponent("wire","horizontal")}>
+                Wire ↔
+            </button>
 
-    <canvas
-      ref={canvasRef}
-      width={900}
-      height={600}
-      
+            <button
+                style={{background:"blue", color:"white"}}
+                onClick={()=>addComponent("wire","vertical")}>
+                Wire ↕ 
+            </button>
 
-      onMouseDown={mouseDown}
+            <button
+                style={{background:"blue", color:"white"}}
+                onClick={()=>addComponent("resistor","horizontal")}>
+                Resistor ↔
+            </button>
 
-      onMouseMove={mouseMove}
+            <button
+                style={{background:"blue", color:"white"}}
+                onClick={()=>addComponent("resistor","vertical")}>
+                Resistor  ↕ 
+            </button>
 
-      onMouseUp={mouseUp}
+            <button
+                style={{background:"blue", color:"white"}}
+                onClick={()=>addComponent("battery","horizontal")}>
+                Battery →
+            </button>
+
+            <button
+                style={{background:"blue", color:"white"}}
+                onClick={()=>addComponent("battery","vertical")}>
+                Battery ↓
+            </button>
+            
+            <button
+                style={{background:"red", color:"white"}}
+                onClick={deleteSelectedComponent}>
+                
+                Delete
+            </button>
+        </div>
 
 
-      style={{
-        width:"900px",
-        height:"600px",
-        border:"1px solid black"
-      }}
+{/*   slider */}
+        {selectedComponent.current?.type === "battery" &&!dragging.current && (
+        <div
+            style={{
+            pointerEvents: "none",
+            position: "absolute",
+            left:
+                selectedComponent.current.orientation === "vertical"
+                ? selectedComponent.current.x +
+                    selectedComponent.current.width - 10
+                : selectedComponent.current.x + 80,
 
-    />
+            top:
+                selectedComponent.current.orientation === "vertical"
+                ? selectedComponent.current.y +
+                    selectedComponent.current.height/2 - 30
+                : selectedComponent.current.y +
+                    selectedComponent.current.height + 30
+            }}
+        >
+            <input
+            type="range"
+            min="-3"
+            max="3"
+            step="0.5"
+            value={selectedComponent.current.voltage}
+            onMouseDown={(e)=>{
+                e.stopPropagation();
+            }}
+            onChange={(e)=>{
+                selectedComponent.current.voltage =
+                Number(e.target.value);
+                forceUpdate(v=>v+1);
+            }}
+            style={{
+                pointerEvents:"auto",
+                height:
+                selectedComponent.current.orientation === "vertical"
+                    ? "100px"
+                    : undefined,
+                width:
+                selectedComponent.current.orientation === "horizontal"
+                    ? "100px"
+                    : undefined,
+                transform:
+                selectedComponent.current.orientation === "vertical"
+                    ? "rotate(270deg)"
+                    : "none"
+            }}
+            />
 
+            <div
+            style={{
+                textAlign: "center",
+                fontWeight: "bold",
+                marginTop: "4px"
+            }}
+            >
+            {selectedComponent.current.voltage} V
+            </div>
+        </div>
+        )}
+
+
+{/* pd readings display*/}
+        {pdSelection.current.length === 2 && (
+        <div
+            style={{
+            color:"black",
+            position:"absolute",
+            left:"10px",
+            top:"33px",
+            background:"white",
+            border:"1px solid black",
+            padding:"3px",
+            width:"200px",
+            textAlign:"right",
+            fontSize:"14px",
+            zIndex:10
+            }}
+        >
+            <div>Component 1: {(densityA*100).toPrecision(2)} "volts" </div>
+            <div>Component 2: {(densityB*100).toPrecision(2)} "volts" </div>
+            <div>Difference: {(difference*100).toPrecision(2)} "volts" </div>
+        </div>
+        )}
+
+        <canvas
+
+        ref={canvasRef}
+        width={1100}
+        height={600}
+        onMouseDown={mouseDown}
+        onMouseMove={mouseMove}
+        onMouseUp={mouseUp}
+        style={{
+            width:"1100px",
+            height:"600px",
+            border:
+            "1px solid black",
+            background:
+            "#fafafa"
+        }}
+
+        />
+    </>
   );
 
 }
