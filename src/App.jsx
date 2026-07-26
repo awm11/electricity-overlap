@@ -996,9 +996,12 @@ function electronDensity(component){
     let lastTime = performance.now();
 
     function frame(time){
-      const dt = (time - lastTime) / 16.67;
-      lastTime = time;
-      console.log(dt);
+      console.log("frame");
+      ctx.fillStyle = "red";
+      ctx.fillRect(0,0,10,10);
+      // const dt = (time - lastTime) / 16.67;
+      // lastTime = time;
+      // console.log(dt);
       ctx.clearRect(
         0,
         0,
