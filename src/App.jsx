@@ -540,24 +540,25 @@ function drawWalls(
 
 function moveElectron(
   electron,
-  map
+  map,
+  dt
 ){
-
+console.log(dt);
   if(electron.carried)
     return;
 
   const nextX =
     electron.x +
-    electron.vx;
+    electron.vx * dt;
 
   const nextY =
     electron.y +
-    electron.vy;
+    electron.vy * dt;
 
   const canMoveX =
   insideCircuit(
     electron.x +
-    electron.vx +
+    electron.vx*dt +
     Math.sign(electron.vx) *
     WALL_BUFFER,
     electron.y,
@@ -568,7 +569,7 @@ function moveElectron(
     insideCircuit(
         electron.x,
         electron.y +
-        electron.vy +
+        electron.vy*dt +
         Math.sign(electron.vy) *
         WALL_BUFFER,
         map
@@ -601,11 +602,11 @@ function moveElectron(
 
 
 
-function repelElectrons(electrons){
+function repelElectrons(electrons, dt){
 
   const mediumRange = 40;
   const repulsionStrength = 0.01;
-  const VelocityDamping = 0.995;
+  const VelocityDamping = Math.pow(0.995, dt);
 
   for(let i=0;i<electrons.length;i++){
 
@@ -640,11 +641,11 @@ function repelElectrons(electrons){
           (mediumRange-distance) /
           mediumRange;
 
-        a.vx -= nx*force;
-        a.vy -= ny*force;
+        a.vx -= nx*force*dt;
+        a.vy -= ny*force*dt;
 
-        b.vx += nx*force;
-        b.vy += ny*force;
+        b.vx += nx*force*dt;
+        b.vy += ny*force*dt;
       }
 
 
@@ -656,11 +657,11 @@ function repelElectrons(electrons){
     const force =
         (minimum-distance)*0.05;
 
-    a.vx -= nx*force;
-    a.vy -= ny*force;
+    a.vx -= nx*force*dt;
+    a.vy -= ny*force*dt;
 
-    b.vx += nx*force;
-    b.vy += ny*force;
+    b.vx += nx*force*dt;
+    b.vy += ny*force*dt;
     }
 
     }
@@ -677,7 +678,7 @@ function repelElectrons(electrons){
   }
 }
 
-function applyBatteryForce(electrons, components){
+function applyBatteryForce(electrons, components, dt){
   for(const component of components){
 
     if(component.type !== "battery")
@@ -692,12 +693,14 @@ function applyBatteryForce(electrons, components){
         electron.vx +=
           component.direction.x *
           component.voltage *
-          BatteryStrength;
+          BatteryStrength *
+          dt;
 
         electron.vy +=
           component.direction.y *
           component.voltage *
-          BatteryStrength;
+          BatteryStrength *
+          dt;
 
       }
 
@@ -996,12 +999,13 @@ function electronDensity(component){
     let lastTime = performance.now();
 
     function frame(time){
-      console.log("frame");
-      ctx.fillStyle = "red";
-      ctx.fillRect(0,0,10,10);
-      // const dt = (time - lastTime) / 16.67;
-      // lastTime = time;
-      // console.log(dt);
+      const dt = Math.min((time - lastTime) / 16.67, 2);
+      console.log("time is", time);
+      console.log("lastTime is", lastTime);
+      console.log("dt is", dt);
+
+      lastTime = time;
+
       ctx.clearRect(
         0,
         0,
@@ -1024,11 +1028,12 @@ function electronDensity(component){
 
       applyBatteryForce(
         electrons.current,
-        components.current
+        components.current,
+        dt
       );
 
       repelElectrons(
-        electrons.current
+        electrons.current, dt
       );
 
       for(
@@ -1037,7 +1042,8 @@ function electronDensity(component){
 
         moveElectron(
           electron,
-          map
+          map,
+          dt
         );
       }
 
@@ -1109,7 +1115,8 @@ function electronDensity(component){
          requestAnimationFrame(frame);
     }
 
-    frame();
+   requestAnimationFrame(frame);
+
   },[]);
 
 
