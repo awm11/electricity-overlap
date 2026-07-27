@@ -30,6 +30,8 @@ class Ammeter{constructor(x1,y1,x2,y2){
     this.readings=[];
     this.current = 0;
     this.average = 0;
+    this.displayAverage = 0;
+    this.lastDisplayUpdate = 0;
   }
 
   contains(x,y){
@@ -1094,12 +1096,12 @@ export default function App(){
     ctx.font="10px Arial";
     ctx.fillText(
       `Last second: ${a.current}`,
-      a.x2 + 10,
+      Math.max(a.x1,a.x2) + 10,
       a.y2
     );
     ctx.fillText(
-      `5s average: ${a.average.toFixed(1)}`,
-      a.x2 + 10,
+      `Last 5s: ${a.displayAverage}`,
+      Math.max(a.x1,a.x2) + 10,
       a.y2 + 20
     );
   }
@@ -1309,6 +1311,9 @@ export default function App(){
       }
 
       // measure ammeters
+
+      
+
       for(const ammeter of ammeters.current){
         for(const electron of electrons.current){
           const crossing = checkAmmeterCrossing(electron, ammeter);
@@ -1319,10 +1324,16 @@ export default function App(){
             });
           }
         }
+
         const now = performance.now();
         ammeter.readings = ammeter.readings.filter(r => now-r.time < 5000);
         ammeter.current = ammeterCurrent(ammeter,1000);
         ammeter.average = ammeterCurrent(ammeter,5000);
+
+        if(now - ammeter.lastDisplayUpdate > 500){
+          ammeter.displayAverage = ammeter.average;
+          ammeter.lastDisplayUpdate = now;
+        }
       }
 
 
