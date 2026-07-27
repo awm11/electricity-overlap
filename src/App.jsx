@@ -849,8 +849,11 @@ export default function App(){
   function clearComponents(){
     components.current = [];
     electrons.current = [];
+    ammeters.current = [];
     selectedObject.current = null;
     pdSelection.current = [];
+    setTool(null);
+
     forceUpdate(v=>v+1);
   }
 
