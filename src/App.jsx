@@ -919,7 +919,7 @@ export default function App(){
       area *= 4.8;
       }
       else if(component.type === "squarewire"){
-      area *= 1.25;
+      area *= 1.35;
       }
       
     return count / area;
@@ -1739,7 +1739,7 @@ export default function App(){
         >
             <div>Component 1: {(densityA*100).toPrecision(2)} "volts" </div>
             <div>Component 2: {(densityB*100).toPrecision(2)} "volts" </div>
-            <div>Difference: {(difference*100).toPrecision(2)} "volts" </div>
+            <div>Difference: {(difference*100).toFixed(2)} "volts" </div>
         </div>
         )}
 
