@@ -32,12 +32,20 @@ class Ammeter{constructor(x1,y1,x2,y2){
     this.average = 0;
   }
 
-  draw(ctx){
-    // draw line + display
-  }
-
   contains(x,y){
-    // later, for selecting/deleting
+    const cx = (this.x1+this.x2)/2;
+    const cy = (this.y1+this.y2)/2;
+    const rx = Math.hypot(this.x2-this.x1,this.y2-this.y1)/2;
+    const ry = 10;
+    const angle = Math.atan2(this.y2-this.y1,this.x2-this.x1);
+
+    const dx = x-cx;
+    const dy = y-cy;
+
+    const xr = dx*Math.cos(-angle)-dy*Math.sin(-angle);
+    const yr = dx*Math.sin(-angle)+dy*Math.cos(-angle);
+
+    return (xr*xr)/(rx*rx)+(yr*yr)/(ry*ry) <= 1;
   }
 
 }
@@ -117,7 +125,7 @@ class Component {
 
 
 
-    spawnElectrons(electrons) {
+  spawnElectrons(electrons) {
     const amount = Math.floor(
         this.width *
         this.height *
@@ -147,117 +155,118 @@ class Component {
         )
         );
     }
-    }
+  }
 
-drawBattery(ctx){
+  drawBattery(ctx){
 
-  const positive = this.voltage >= 0;
+      const positive = this.voltage >= 0;
 
-  ctx.fillStyle = "#212121";
-  ctx.fillRect(
-    this.x,
-    this.y,
-    this.width,
-    this.height
-  );
-
-  ctx.fillStyle = "#f5a623";
-
-  if(this.orientation === "vertical"){
-
-    if(positive){
-      ctx.fillRect(
-        this.x,
-        this.y + this.height*0.70,
-        this.width,
-        this.height*0.3
-      );
-    }
-    else{
+      ctx.fillStyle = "#212121";
       ctx.fillRect(
         this.x,
         this.y,
         this.width,
-        this.height*0.3
+        this.height
       );
-    }
 
-  }
-  else{
+      ctx.fillStyle = "#f5a623";
 
-    if(positive){
-      ctx.fillRect(
+      if(this.orientation === "vertical"){
+
+        if(positive){
+          ctx.fillRect(
+            this.x,
+            this.y + this.height*0.70,
+            this.width,
+            this.height*0.3
+          );
+        }
+        else{
+          ctx.fillRect(
+            this.x,
+            this.y,
+            this.width,
+            this.height*0.3
+          );
+        }
+
+      }
+      else{
+
+        if(positive){
+          ctx.fillRect(
+            this.x,
+            this.y,
+            this.width*0.3,
+            this.height
+          );
+        }
+        else{
+          ctx.fillRect(
+            this.x + this.width*0.7,
+            this.y,
+            this.width*0.3,
+            this.height
+          );
+        }
+
+      }
+
+      ctx.strokeStyle = "#6e6c6c";
+      ctx.lineWidth = 4;
+
+      ctx.strokeRect(
         this.x,
         this.y,
-        this.width*0.3,
+        this.width,
         this.height
       );
-    }
-    else{
-      ctx.fillRect(
-        this.x + this.width*0.7,
-        this.y,
-        this.width*0.3,
-        this.height
-      );
-    }
+      
 
-  }
+      ctx.save();
 
-  ctx.strokeStyle = "#6e6c6c";
-  ctx.lineWidth = 4;
+      ctx.fillStyle = "#000";
+      ctx.font = "bold 32px Arial";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
 
-  ctx.strokeRect(
-    this.x,
-    this.y,
-    this.width,
-    this.height
-  );
+      if(this.orientation === "vertical"){
 
-  ctx.save();
+        ctx.fillText(
+          positive ? "−" : "+",
+          this.x + this.width/2,
+          this.y + this.height*0.15
+        );
 
-  ctx.fillStyle = "#000";
-  ctx.font = "bold 32px Arial";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
+        ctx.fillText(
+          positive ? "+" : "−",
+          this.x + this.width/2,
+          this.y + this.height*0.85
+        );
 
-  if(this.orientation === "vertical"){
+      }
+      else{
 
-    ctx.fillText(
-      positive ? "−" : "+",
-      this.x + this.width/2,
-      this.y + this.height*0.15
-    );
+        ctx.fillText(
+          positive ? "+" : "−",
+          this.x + this.width*0.15,
+          this.y + this.height/2
+        );
 
-    ctx.fillText(
-      positive ? "+" : "−",
-      this.x + this.width/2,
-      this.y + this.height*0.85
-    );
+        ctx.fillText(
+          positive ? "−" : "+",
+          this.x + this.width*0.85,
+          this.y + this.height/2
+        );
 
-  }
-  else{
+      }
 
-    ctx.fillText(
-      positive ? "+" : "−",
-      this.x + this.width*0.15,
-      this.y + this.height/2
-    );
+      ctx.restore();
 
-    ctx.fillText(
-      positive ? "−" : "+",
-      this.x + this.width*0.85,
-      this.y + this.height/2
-    );
-
-  }
-
-  ctx.restore();
-
-}
+      }
 
 
-    draw(ctx, pdSelection){
+  draw(ctx, pdSelection, selectedObject){
 
     ctx.lineWidth = 4;
 
@@ -282,6 +291,18 @@ drawBattery(ctx){
         this.height
     );
 
+    if(selectedObject.current?.type==="component" &&
+         selectedObject.current.object===this
+        ){
+          ctx.fillStyle = "rgba(0,200,255,0.2)";
+          ctx.fillRect(
+            this.x,
+            this.y,
+            this.width,
+            this.height
+        );
+      }
+      
 
     ctx.fillStyle = "black";
     ctx.font = "10px Arial";
@@ -821,25 +842,43 @@ export default function App(){
       component.spawnElectrons(electrons.current);
     }
 
-    selectedObject.current = component;
+    selectedObject.current = {type:"component", object:component};
+    console.log(selectedObject.current.type.type);
     setTool(null);
     pdSelection.current = [];
     forceUpdate(x=>x+1);
     }
-
+  
   function deleteSelectedObject(){
-    const component =
-      selectedObject.current;
+    const selected = selectedObject.current;
+    console.log(selected)
 
-    if(!component)
+    if(!selected)
       return;
 
-    components.current = components.current.filter(
-      c => c !== component
-      );
-    electrons.current = electrons.current.filter(
-        e => !component.contains(e.x,e.y)
-      );
+    if(selected.type==="component"){
+      const component = selected.object;
+
+      components.current =
+        components.current.filter(
+          c => c !== component
+        );
+
+      electrons.current =
+        electrons.current.filter(
+          e => !component.contains(e.x,e.y)
+        );
+    }
+
+    if(selected.type==="ammeter"){
+      const ammeter = selected.object;
+
+      ammeters.current =
+        ammeters.current.filter(
+          a => a !== ammeter
+        );
+    }
+
     selectedObject.current = null;
     pdSelection.current = [];
     setTool(null);
@@ -853,7 +892,6 @@ export default function App(){
     selectedObject.current = null;
     pdSelection.current = [];
     setTool(null);
-
     forceUpdate(v=>v+1);
   }
 
@@ -923,7 +961,6 @@ export default function App(){
 
     return 0;
   }
-
 
 
   function ammeterCurrent(ammeter,length=1000){
@@ -1074,7 +1111,6 @@ export default function App(){
       const angle = Math.atan2(a.y2-a.y1,a.x2-a.x1);
       const rx = length/2;
       const ry = 10;
-
       ctx.strokeStyle = "rgb(172, 23, 23)";
       ctx.lineWidth = 3;
       ctx.beginPath();
@@ -1087,6 +1123,11 @@ export default function App(){
         0,
         Math.PI
       );
+      if( selectedObject.current?.type==="ammeter" &&
+          selectedObject.current.object===a){
+          ctx.fillStyle = "rgba(0,200,255,0.2)";
+          ctx.fill();
+          }
       ctx.stroke();
     }
 
@@ -1101,8 +1142,6 @@ export default function App(){
     ctx.strokeStyle = "rgba(255, 29, 29, 0.9)";
     ctx.lineWidth = 4;
 
-    // ctx.setLineDash([5,5]);
-
     ctx.beginPath();
     ctx.ellipse(
       cx,
@@ -1113,11 +1152,12 @@ export default function App(){
       Math.PI,
       Math.PI*2
     );
+    if( selectedObject.current?.type==="ammeter" &&
+        selectedObject.current.object===a){
+        ctx.fillStyle = "rgba(0,200,255,0.2)";
+        ctx.fill();
+        }
     ctx.stroke();
-    // ctx.setLineDash([]);
-    // ctx.strokeStyle="rgba(255,255,255,0.3)";
-    // ctx.lineWidth=1;
-    // ctx.stroke();
 
     drawAmmeterReadings(ctx,a)
   }
@@ -1302,7 +1342,7 @@ export default function App(){
       for(
         const component of components.current
       ){
-        component.draw(ctx, pdSelection.current);
+        component.draw(ctx, pdSelection.current, selectedObject);
       }
 
       // draw generated walls
@@ -1350,26 +1390,37 @@ export default function App(){
       rect.top;
 
     if(tool==="ammeter"){
-      
       if(!ammeterStart.current){
         ammeterStart.current={x,y};
         console.log("start", ammeterStart.current);
       }
       else{
-        ammeters.current.push(
-          new Ammeter(
-            ammeterStart.current.x,
-            ammeterStart.current.y,
-            x,
-            y
-          )
+        const ammeter = new Ammeter(
+          ammeterStart.current.x,
+          ammeterStart.current.y,
+          x,
+          y
         );
+        ammeters.current.push(ammeter);
+        selectedObject.current = {type:"ammeter", object:ammeter
+        };
         ammeterStart.current=null;
       }
+
       forceUpdate(v=>v+1);
       return;
     }
-    
+
+    for(const ammeter of ammeters.current){
+      if(ammeter.contains(x,y)){
+        selectedObject.current = {
+          type:"ammeter",
+          object:ammeter
+        };
+        forceUpdate(v=>v+1);
+        return;
+      }
+    }
 
     for(
       const component of components.current
@@ -1387,7 +1438,14 @@ export default function App(){
         }
 
 
-        selectedObject.current = component;
+        selectedObject.current = {type:"component", object:component};
+        
+        if(selectedObject.current !== null)
+           {console.log(selectedObject.current);
+           console.log(selectedObject.current.object.type)
+           }
+
+
         dragging.current = component;
         forceUpdate(v=>v+1);
           component.placedX = -9999;
@@ -1407,13 +1465,13 @@ export default function App(){
       }
       
     }
-        
-    if(tool==="pd"){
-      pdSelection.current=[];
-      selectedObject.current=[];
-      setTool(null);
-      forceUpdate(v=>v+1);
-        }
+
+    // clicked empty space
+    selectedObject.current = null;
+    pdSelection.current = [];
+    setTool(null);
+    forceUpdate(v=>v+1);
+
   }
 
 
@@ -1477,9 +1535,10 @@ export default function App(){
 
   }
 
-
-
-
+  if(!selectedObject.current===null)
+    {console.log(selectedObject.current);
+    console.log(selectedObject.current.object.type)
+    }
 
   return (
     
@@ -1576,30 +1635,34 @@ export default function App(){
 
 
 {/*   slider */}
-        {selectedObject.current?.type === "battery" &&!dragging.current && (
+        
+        {selectedObject.current !== null &&
+        selectedObject.current.type === "component" &&
+        selectedObject.current.object.type==="battery" &&
+        !dragging.current && (
         <div
             style={{
             pointerEvents: "none",
             position: "absolute",
 
             left:
-              selectedObject.current.orientation === "vertical"
+              selectedObject.current.object.orientation === "vertical"
               ? canvasRect.left +
                 (
-                  selectedObject.current.x +
-                  selectedObject.current.width - 40
+                  selectedObject.current.object.x +
+                  selectedObject.current.object.width - 40
                 ) * scaleX
               : canvasRect.left +
                 (
-                  selectedObject.current.x + 40
+                  selectedObject.current.object.x + 40
                 ) * scaleX,
 
             top:
-                selectedObject.current.orientation === "vertical"
-                ? selectedObject.current.y +
-                    selectedObject.current.height/2 - 30
-                : selectedObject.current.y +
-                    selectedObject.current.height + 40
+                selectedObject.current.object.orientation === "vertical"
+                ? selectedObject.current.object.y +
+                    selectedObject.current.object.height/2 - 30
+                : selectedObject.current.object.y +
+                    selectedObject.current.object.height + 40
             }}
         >
             <input
@@ -1607,27 +1670,27 @@ export default function App(){
             min="-3"
             max="3"
             step="0.5"
-            value={selectedObject.current.voltage}
+            value={selectedObject.current.object.voltage}
             onMouseDown={(e)=>{
                 e.stopPropagation();
             }}
             onChange={(e)=>{
-                selectedObject.current.voltage =
+                selectedObject.current.object.voltage =
                 Number(e.target.value);
                 forceUpdate(v=>v+1);
             }}
             style={{
                 pointerEvents:"auto",
                 height:
-                selectedObject.current.orientation === "vertical"
+                selectedObject.current.object.orientation === "vertical"
                     ? "100px"
                     : undefined,
                 width:
-                selectedObject.current.orientation === "horizontal"
+                selectedObject.current.object.orientation === "horizontal"
                     ? "100px"
                     : undefined,
                 transform:
-                selectedObject.current.orientation === "vertical"
+                selectedObject.current.object.orientation === "vertical"
                     ? "rotate(270deg)"
                     : "none"
             }}
@@ -1640,7 +1703,7 @@ export default function App(){
                 marginTop: "4px"
             }}
             >
-            {selectedObject.current.voltage} V
+            {selectedObject.current.object.voltage} V
             </div>
         </div>
         )}
