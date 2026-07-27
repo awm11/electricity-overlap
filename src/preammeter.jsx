@@ -21,26 +21,6 @@ class Electron {constructor(x, y) {
 
 }
 
-class Ammeter{constructor(x1,y1,x2,y2){
-    this.x1=x1;
-    this.y1=y1;
-    this.x2=x2;
-    this.y2=y2;
-    this.id = Math.random().toString(36).slice(2,7);
-    this.readings=[];
-    this.current = 0;
-    this.average = 0;
-  }
-
-  draw(ctx){
-    // draw line + display
-  }
-
-  contains(x,y){
-    // later, for selecting/deleting
-  }
-
-}
 
 
 class Component {
@@ -255,8 +235,6 @@ drawBattery(ctx){
   ctx.restore();
 
 }
-
-
     draw(ctx, pdSelection){
 
     ctx.lineWidth = 4;
@@ -292,7 +270,6 @@ drawBattery(ctx){
     );    
     }
 
-    
 
 }
 
@@ -540,11 +517,16 @@ function drawWalls(
 
 
 
+
+
+
+
 function moveElectron(
   electron,
   map,
   dt
 ){
+console.log(dt);
   if(electron.carried)
     return;
 
@@ -793,9 +775,8 @@ export default function App(){
   const dragging = useRef(null);
   const dragOffset = useRef({x:0, y:0});
   const [tool, setTool] = useState(null);
-  const toolRef = useRef(null);
   const canvasRef = useRef(null);
-  const selectedObject = useRef(null);
+  const selectedComponent = useRef(null);
   const [, forceUpdate] = useState(0);
   const canvasRect =  canvasRef.current?.getBoundingClientRect();
   const scaleX = canvasRect
@@ -807,8 +788,6 @@ export default function App(){
   const pdSelection = useRef([]);
   const ammeters = useRef([]);
   const ammeterStart = useRef(null);
-  const mousePos = useRef({x:0,y:0});
-  
 
   function addComponent(type, orientation="horizontal"){
     const component = new Component(type,830,30,orientation);
@@ -821,15 +800,15 @@ export default function App(){
       component.spawnElectrons(electrons.current);
     }
 
-    selectedObject.current = component;
+    selectedComponent.current = component;
     setTool(null);
     pdSelection.current = [];
     forceUpdate(x=>x+1);
     }
 
-  function deleteSelectedObject(){
+  function deleteSelectedComponent(){
     const component =
-      selectedObject.current;
+      selectedComponent.current;
 
     if(!component)
       return;
@@ -840,7 +819,7 @@ export default function App(){
     electrons.current = electrons.current.filter(
         e => !component.contains(e.x,e.y)
       );
-    selectedObject.current = null;
+    selectedComponent.current = null;
     pdSelection.current = [];
     setTool(null);
     forceUpdate(x=>x+1);
@@ -849,136 +828,39 @@ export default function App(){
   function clearComponents(){
     components.current = [];
     electrons.current = [];
-    selectedObject.current = null;
+    selectedComponent.current = null;
     pdSelection.current = [];
     forceUpdate(v=>v+1);
   }
 
-  function electronDensity(component){
+function electronDensity(component){
 
-    let count = 0;
-    for(const electron of electrons.current){
-      if(component.contains(
-        electron.x,
-        electron.y
-      )){
-        count++;
-      }
-    }
-    const buffer = WALL_BUFFER;
-    const usableWidth =
-      component.width - buffer*2;
-    const usableHeight =
-      component.height - buffer*2;
-    let area =
-      usableWidth * usableHeight;
-      if(component.type === "resistor"){
-      area *= 4.8;
-      }
-      else if(component.type === "squarewire"){
-      area *= 1.25;
-      }
-      
-    return count / area;
-  }
-
-  function checkAmmeterCrossing(electron, ammeter){
-
-    const side1 =
-      (ammeter.x2-ammeter.x1) *
-      (electron.oldY-ammeter.y1) -
-      (ammeter.y2-ammeter.y1) *
-      (electron.oldX-ammeter.x1);
-
-    const side2 =
-      (ammeter.x2-ammeter.x1) *
-      (electron.y-ammeter.y1) -
-      (ammeter.y2-ammeter.y1) *
-      (electron.x-ammeter.x1);
-
-    if(side1*side2 < 0){
-
-      const inBounds =
-        (
-          electron.x >= Math.min(ammeter.x1,ammeter.x2) &&
-          electron.x <= Math.max(ammeter.x1,ammeter.x2)
-        )
-        ||
-        (
-          electron.y >= Math.min(ammeter.y1,ammeter.y2) &&
-          electron.y <= Math.max(ammeter.y1,ammeter.y2)
-        );
-
-      if(!inBounds)
-        return 0;
-
-      if(side1 < 0)
-        return 1;
-      else
-        return -1;
-    }
-
-    return 0;
-  }
-
-
-
-  function ammeterCurrent(ammeter,length=1000){
-    const now = performance.now();
-    const lastSecond = ammeter.readings.filter(
-      r => now-r.time < length
-    );
-    return lastSecond.reduce(
-      (sum,r)=>sum+r.value,
-      0
-    );
-  }
-
-
-  function drawElectrons(ctx, electrons){
-    for(const electron of electrons){
-
-    // Motion trail
-    ctx.beginPath();
-    ctx.moveTo(
-        electron.x,
-        electron.y
-    );
-    ctx.lineTo(
-        electron.x - electron.vx * 10,
-        electron.y - electron.vy * 10
-    );
-    ctx.strokeStyle =
-        "#4ad5f772";
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-    // Electron
-
-    ctx.beginPath();
-    ctx.arc(
-    electron.x,
-    electron.y,
-    electron.radius,
-    0,
-    Math.PI*2
-    );
-
-    const g = ctx.createRadialGradient(
-    electron.x - electron.radius*0.35,
-    electron.y - electron.radius*0.35,
-    electron.radius*0.2,
-    electron.x,
-    electron.y,
-    electron.radius
-    );
-    g.addColorStop(0,"#bff8ff");
-    g.addColorStop(0.4,"#5fd6f2");
-    g.addColorStop(1,"#0d7ea6");
-    ctx.fillStyle = g;
-    ctx.fill();
+  let count = 0;
+  for(const electron of electrons.current){
+    if(component.contains(
+      electron.x,
+      electron.y
+    )){
+      count++;
     }
   }
+  const buffer = WALL_BUFFER;
+  const usableWidth =
+    component.width - buffer*2;
+  const usableHeight =
+    component.height - buffer*2;
+  let area =
+    usableWidth * usableHeight;
+    if(component.type === "resistor"){
+    area *= 4.8;
+    }
+    else if(component.type === "squarewire"){
+    area *= 1.25;
+    }
+    
+  return count / area;
+}
+
 
   function drawX(ctx,x,y){
     ctx.strokeStyle = "green";
@@ -1048,96 +930,6 @@ export default function App(){
 
 }
 
-  function drawAmmeterReadings(ctx, a){
-
-    ctx.fillStyle="red";
-    ctx.font="10px Arial";
-    ctx.fillText(
-      `Last second: ${a.current}`,
-      a.x2 + 10,
-      a.y2
-    );
-    ctx.fillText(
-      `5s average: ${a.average.toFixed(1)}`,
-      a.x2 + 10,
-      a.y2 + 20
-    );
-  }
-
-  function drawAmmeterBack(ctx,a){
-      const cx = (a.x1+a.x2)/2;
-      const cy = (a.y1+a.y2)/2;
-      const length = Math.hypot(a.x2-a.x1,a.y2-a.y1);
-      const angle = Math.atan2(a.y2-a.y1,a.x2-a.x1);
-      const rx = length/2;
-      const ry = 10;
-
-      ctx.strokeStyle = "rgb(172, 23, 23)";
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.ellipse(
-        cx,
-        cy,
-        rx,
-        ry,
-        angle,
-        0,
-        Math.PI
-      );
-      ctx.stroke();
-    }
-
-  function drawAmmeterFront(ctx,a){
-    const cx = (a.x1+a.x2)/2;
-    const cy = (a.y1+a.y2)/2;
-    const length = Math.hypot(a.x2-a.x1,a.y2-a.y1);
-    const angle = Math.atan2(a.y2-a.y1,a.x2-a.x1);
-    const rx = length/2;
-    const ry = 10;
-
-    ctx.strokeStyle = "rgba(255, 29, 29, 0.9)";
-    ctx.lineWidth = 4;
-
-    // ctx.setLineDash([5,5]);
-
-    ctx.beginPath();
-    ctx.ellipse(
-      cx,
-      cy,
-      rx,
-      ry,
-      angle,
-      Math.PI,
-      Math.PI*2
-    );
-    ctx.stroke();
-    // ctx.setLineDash([]);
-    // ctx.strokeStyle="rgba(255,255,255,0.3)";
-    // ctx.lineWidth=1;
-    // ctx.stroke();
-
-    drawAmmeterReadings(ctx,a)
-  }
-
-  function drawAmmeterPreview(ctx,start,end){
-    const cx = (start.x+end.x)/2;
-    const cy = (start.y+end.y)/2;
-    const length = Math.hypot(end.x-start.x,end.y-start.y);
-    const angle = Math.atan2(end.y-start.y,end.x-start.x);
-    const rx = length/2;
-    const ry = 10;
-
-    ctx.strokeStyle="rgba(255,0,0,0.5)";
-    ctx.lineWidth = 4;
-    ctx.setLineDash([5,5]);
-
-    ctx.beginPath();
-    ctx.ellipse(cx,cy,rx,ry,angle,0,Math.PI*2);
-    ctx.stroke();
-
-    ctx.setLineDash([]);
-  }
-
 //pd calc constants
     const densityA =
     pdSelection.current[0]
@@ -1203,7 +995,7 @@ export default function App(){
         return;
 
       if(e.key==="Delete" || e.key==="Backspace")
-        deleteSelectedObject();
+        deleteSelectedComponent();
     }
 
     window.addEventListener("keydown", keyDown);
@@ -1258,44 +1050,19 @@ export default function App(){
         electrons.current, dt
       );
 
-      // move electrons
-      for(const electron of electrons.current){
-        electron.oldX = electron.x;
-        electron.oldY = electron.y;
-        moveElectron(electron,map,dt);
-      }
+      for(
+        const electron of electrons.current
+      ){
 
-      // measure ammeters
-      for(const ammeter of ammeters.current){
-        for(const electron of electrons.current){
-          const crossing = checkAmmeterCrossing(electron, ammeter);
-          if(crossing !== 0){
-            ammeter.readings.push({
-              time: performance.now(),
-              value: crossing
-            });
-          }
-        }
-        const now = performance.now();
-        ammeter.readings = ammeter.readings.filter(r => now-r.time < 5000);
-        ammeter.current = ammeterCurrent(ammeter,1000);
-        ammeter.average = ammeterCurrent(ammeter,5000);
-      }
-
-
-      for(const ammeter of ammeters.current){
-        drawAmmeterBack(ctx, ammeter);
-      }
-
-      if(toolRef.current==="ammeter" && ammeterStart.current){
-        drawAmmeterPreview(
-          ctx,
-          ammeterStart.current,
-          mousePos.current
+        moveElectron(
+          electron,
+          map,
+          dt
         );
       }
 
-      // draw components second
+
+      // draw components first
       for(
         const component of components.current
       ){
@@ -1310,15 +1077,50 @@ export default function App(){
         );
         }
 
-      drawElectrons(
-        ctx,
-        electrons.current
-      );
-      
-      for(const ammeter of ammeters.current){
-        drawAmmeterFront(ctx, ammeter);
-      }
-      
+        // draw electrons
+
+        for(const electron of electrons.current){
+
+        // Motion trail
+        ctx.beginPath();
+        ctx.moveTo(
+            electron.x,
+            electron.y
+        );
+        ctx.lineTo(
+            electron.x - electron.vx * 10,
+            electron.y - electron.vy * 10
+        );
+        ctx.strokeStyle =
+            "#4ad5f772";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Electron
+
+        ctx.beginPath();
+        ctx.arc(
+        electron.x,
+        electron.y,
+        electron.radius,
+        0,
+        Math.PI*2
+        );
+
+        const g = ctx.createRadialGradient(
+        electron.x - electron.radius*0.35,
+        electron.y - electron.radius*0.35,
+        electron.radius*0.2,
+        electron.x,
+        electron.y,
+        electron.radius
+        );
+        g.addColorStop(0,"#bff8ff");
+        g.addColorStop(0.4,"#5fd6f2");
+        g.addColorStop(1,"#0d7ea6");
+        ctx.fillStyle = g;
+        ctx.fill();
+        }
       
       drawPDMeasurement(ctx);
       
@@ -1333,6 +1135,9 @@ export default function App(){
   },[]);
 
 
+
+
+
   function mouseDown(e){
     // alert("reached mouseDown")
 
@@ -1345,29 +1150,6 @@ export default function App(){
     const y =
       e.clientY -
       rect.top;
-
-    if(tool==="ammeter"){
-      
-      if(!ammeterStart.current){
-        ammeterStart.current={x,y};
-        console.log("start", ammeterStart.current);
-      }
-      else{
-        ammeters.current.push(
-          new Ammeter(
-            ammeterStart.current.x,
-            ammeterStart.current.y,
-            x,
-            y
-          )
-        );
-        ammeterStart.current=null;
-      }
-      forceUpdate(v=>v+1);
-      return;
-    }
-    
-
     for(
       const component of components.current
     ){
@@ -1384,7 +1166,7 @@ export default function App(){
         }
 
 
-        selectedObject.current = component;
+        selectedComponent.current = component;
         dragging.current = component;
         forceUpdate(v=>v+1);
           component.placedX = -9999;
@@ -1405,56 +1187,37 @@ export default function App(){
       
     }
         
-    if(tool==="pd"){
-      pdSelection.current=[];
-      selectedObject.current=[];
-      setTool(null);
-      forceUpdate(v=>v+1);
-        }
+  if(tool==="pd"){
+    pdSelection.current=[];
+    setTool(null);
+    forceUpdate(v=>v+1);
+      }
   }
+
 
 
 
   function mouseMove(e){
-    const rect = canvasRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    if(dragging.current || tool==="ammeter"){
-      mousePos.current = {x,y};
-    }
-
     if(!dragging.current)
       return;
-
-    dragging.current.x = x - dragOffset.current.x;
-    dragging.current.y = y - dragOffset.current.y;
-  }
-
-  function mouseUp(e){
-  
     const rect =
       canvasRef.current
       .getBoundingClientRect();
-    const x =
+    dragging.current.x =
       e.clientX -
-      rect.left;
-    const y =
+      rect.left -
+      dragOffset.current.x;
+    dragging.current.y =
       e.clientY -
-      rect.top;
+      rect.top -
+      dragOffset.current.y;
+  }
 
 
-    // if(tool==="ammeter" && ammeterStart.current){
-    //     const ammeter = new Ammeter(
-    //         ammeterStart.current.x,
-    //         ammeterStart.current.y,
-    //         x, 
-    //         y);
-    //     ammeters.current.push(ammeter);
-    //     ammeterStart.current = null;
-    //     forceUpdate(v=>v+1);
-    //     return;
-    //   }
+
+
+
+  function mouseUp(){
 
     if(dragging.current){
 
@@ -1494,21 +1257,6 @@ export default function App(){
             >
             measure p.d. ⚡
             </button>
-
-            <button
-              style={{
-                background: tool==="ammeter" ? "deepskyblue" : "grey",
-                color:"white"
-              }}
-              onClick={()=>{
-                const newTool = tool==="ammeter" ? null : "ammeter";
-                setTool(newTool);
-                toolRef.current = newTool;
-              }}
-            >
-              measure current 🌊
-            </button>
-            
             <button 
                 style={{background:"blue", color:"white"}}
                 onClick={()=>addComponent("wire","horizontal")}>
@@ -1559,7 +1307,7 @@ export default function App(){
 
             <button
                 style={{background:"red", color:"white", height: "23.5px"}}
-                onClick={deleteSelectedObject}>
+                onClick={deleteSelectedComponent}>
                 Delete ✘
             </button>
 
@@ -1573,30 +1321,30 @@ export default function App(){
 
 
 {/*   slider */}
-        {selectedObject.current?.type === "battery" &&!dragging.current && (
+        {selectedComponent.current?.type === "battery" &&!dragging.current && (
         <div
             style={{
             pointerEvents: "none",
             position: "absolute",
 
             left:
-              selectedObject.current.orientation === "vertical"
+              selectedComponent.current.orientation === "vertical"
               ? canvasRect.left +
                 (
-                  selectedObject.current.x +
-                  selectedObject.current.width - 40
+                  selectedComponent.current.x +
+                  selectedComponent.current.width - 40
                 ) * scaleX
               : canvasRect.left +
                 (
-                  selectedObject.current.x + 40
+                  selectedComponent.current.x + 40
                 ) * scaleX,
 
             top:
-                selectedObject.current.orientation === "vertical"
-                ? selectedObject.current.y +
-                    selectedObject.current.height/2 - 30
-                : selectedObject.current.y +
-                    selectedObject.current.height + 40
+                selectedComponent.current.orientation === "vertical"
+                ? selectedComponent.current.y +
+                    selectedComponent.current.height/2 - 30
+                : selectedComponent.current.y +
+                    selectedComponent.current.height + 40
             }}
         >
             <input
@@ -1604,27 +1352,27 @@ export default function App(){
             min="-3"
             max="3"
             step="0.5"
-            value={selectedObject.current.voltage}
+            value={selectedComponent.current.voltage}
             onMouseDown={(e)=>{
                 e.stopPropagation();
             }}
             onChange={(e)=>{
-                selectedObject.current.voltage =
+                selectedComponent.current.voltage =
                 Number(e.target.value);
                 forceUpdate(v=>v+1);
             }}
             style={{
                 pointerEvents:"auto",
                 height:
-                selectedObject.current.orientation === "vertical"
+                selectedComponent.current.orientation === "vertical"
                     ? "100px"
                     : undefined,
                 width:
-                selectedObject.current.orientation === "horizontal"
+                selectedComponent.current.orientation === "horizontal"
                     ? "100px"
                     : undefined,
                 transform:
-                selectedObject.current.orientation === "vertical"
+                selectedComponent.current.orientation === "vertical"
                     ? "rotate(270deg)"
                     : "none"
             }}
@@ -1637,7 +1385,7 @@ export default function App(){
                 marginTop: "4px"
             }}
             >
-            {selectedObject.current.voltage} V
+            {selectedComponent.current.voltage} V
             </div>
         </div>
         )}
