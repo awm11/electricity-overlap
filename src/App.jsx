@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import defaultCircuit from "./default-circuit.json";
+
 const ElectronDensity = 0.0030;
 const GRID_SIZE = 4;
 const ELECTRON_RADIUS = 3;
@@ -318,8 +320,6 @@ class Component {
     
 
 }
-
-
 
 
 function createEmptyCell(){
@@ -831,25 +831,91 @@ export default function App(){
   const ammeters = useRef([]);
   const ammeterStart = useRef(null);
   const mousePos = useRef({x:0,y:0});
-  
 
-  function addComponent(type, orientation="horizontal"){
-    const component = new Component(type,830,30,orientation);
-    components.current.push(component);
-    component.spawnElectrons(electrons.current);
-    if(type==="bonus-electrons"){
-      component.spawnElectrons(electrons.current);
-      component.spawnElectrons(electrons.current);
-      component.spawnElectrons(electrons.current);
-      component.spawnElectrons(electrons.current);
-    }
+  function exportComponents(components) {
 
-    selectedObject.current = {type:"component", object:component};
-    console.log(selectedObject.current.type.type);
-    setTool(null);
-    pdSelection.current = [];
-    forceUpdate(x=>x+1);
-    }
+      const simplified = components.current.map(c => ({
+          type: c.type,
+          x: c.placedX,
+          y: c.placedY,
+          orientation: c.orientation
+      }));
+
+      const json = JSON.stringify(simplified, null, 2);
+
+      const blob = new Blob([json], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "circuit.json";
+      a.click();
+
+      URL.revokeObjectURL(url);
+  }
+
+  function importCircuit() {
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = ".json";
+
+      input.onchange = e => {
+          const file = e.target.files[0];
+          if (!file) return;
+
+          const reader = new FileReader();
+
+          reader.onload = event => {
+              const circuitData = JSON.parse(event.target.result);
+
+              // Clear existing circuit
+              components.current = [];
+              electrons.current = [];
+
+              // Rebuild circuit
+              circuitData.forEach(c => {
+                  addComponent(
+                      c.type,
+                      c.orientation,
+                      c.x,
+                      c.y,
+                      false
+                  );
+              });
+
+              forceUpdate(x=>x+1);
+          };
+
+          reader.readAsText(file);
+      };
+
+      input.click();
+  }
+
+  function loadFromPreset(){
+  alert("coming soon!")
+  }
+
+  function addComponent(type, orientation="horizontal", x=830, y=30, select=true){
+      const component = new Component(type, x, y, orientation);
+
+      components.current.push(component);
+      component.spawnElectrons(electrons.current);
+
+      if(type==="bonus-electrons"){
+          component.spawnElectrons(electrons.current);
+          component.spawnElectrons(electrons.current);
+          component.spawnElectrons(electrons.current);
+          component.spawnElectrons(electrons.current);
+      }
+
+      if(select)
+        {selectedObject.current = {type:"component", object:component};
+      }
+      setTool(null);
+      pdSelection.current = [];
+      forceUpdate(x=>x+1);
+  }
   
   function deleteSelectedObject(){
     const selected = selectedObject.current;
@@ -1199,36 +1265,48 @@ export default function App(){
     
 // other constants
 
-  const components =
-    useRef([
+  const components = useRef(
 
-    new Component(
-    "battery",
-    550,
-    350,
-    "vertical"
-    ),
+      defaultCircuit.map(c =>
+          new Component(
+              c.type,
+              c.x,
+              c.y,
+              c.orientation
+          )
+      )
+  );
 
-    new Component(
-    "wire",
-    100,
-    150
-    ),
+  // const components =
+  //   useRef([
 
-    new Component(
-    "wire",
-    200,
-    450
-    ),
+  //   new Component(
+  //   "battery",
+  //   550,
+  //   350,
+  //   "vertical"
+  //   ),
 
-    new Component(
-    "resistor",
-    500,
-    150,
-    "vertical"
-    )
+  //   new Component(
+  //   "wire",
+  //   100,
+  //   150
+  //   ),
 
-    ]);
+  //   new Component(
+  //   "wire",
+  //   200,
+  //   450
+  //   ),
+
+  //   new Component(
+  //   "resistor",
+  //   500,
+  //   150,
+  //   "vertical"
+  //   )
+
+  //   ]);
 
 
 
@@ -1403,7 +1481,6 @@ export default function App(){
     if(tool==="ammeter"){
       if(!ammeterStart.current){
         ammeterStart.current={x,y};
-        console.log("start", ammeterStart.current);
       }
       else{
         const ammeter = new Ammeter(
@@ -1448,14 +1525,7 @@ export default function App(){
             return;
         }
 
-
         selectedObject.current = {type:"component", object:component};
-        
-        if(selectedObject.current !== null)
-           {console.log(selectedObject.current);
-           console.log(selectedObject.current.object.type)
-           }
-
 
         dragging.current = component;
         forceUpdate(v=>v+1);
@@ -1546,10 +1616,6 @@ export default function App(){
 
   }
 
-  if(!selectedObject.current===null)
-    {console.log(selectedObject.current);
-    console.log(selectedObject.current.object.type)
-    }
 
   return (
     
@@ -1641,6 +1707,27 @@ export default function App(){
               onClick={clearComponents}
             >
               Clear all 🗑
+            </button>
+
+            <button
+              style={{background:"black", color:"white"}}
+              onClick={() => exportComponents(components)}
+            >
+              Export circuit 👇
+            </button>
+
+            <button
+              style={{background:"black", color:"white"}}
+              onClick={importCircuit}
+            >
+              Import circuit ☝️
+            </button>
+            
+            <button
+              style={{background:"black", color:"white"}}
+              onClick={loadFromPreset}
+            >
+              Load preset 💾
             </button>
         </div>
 

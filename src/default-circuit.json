@@ -1,0 +1,26 @@
+[
+  {
+    "type": "battery",
+    "x": 550,
+    "y": 350,
+    "orientation": "vertical"
+  },
+  {
+    "type": "wire",
+    "x": 100,
+    "y": 150,
+    "orientation": "horizontal"
+  },
+  {
+    "type": "wire",
+    "x": 200,
+    "y": 450,
+    "orientation": "horizontal"
+  },
+  {
+    "type": "resistor",
+    "x": 500,
+    "y": 150,
+    "orientation": "vertical"
+  }
+]
