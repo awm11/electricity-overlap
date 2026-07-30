@@ -1,7 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import defaultCircuit from "./default-circuit.json";
+import defaultCircuit from "./circuits/default-circuit.json";
+import simpleCircuit from "./circuits/simple-circuit.json";
+import seriesCircuit from "./circuits/series-circuit.json";
+import parallelCircuit from "./circuits/parallel-circuit.json";
+import capacitorCircuit from "./circuits/capacitor-circuit.json";
+import rectangularPlate from "./circuits/rectangular-plate.json";
+import combinationCircuit from "./circuits/combination-circuit.json";
 
-const ElectronDensity = 0.0030;
+
+const ElectronDensity = 0.0045;
 const GRID_SIZE = 4;
 const ELECTRON_RADIUS = 3;
 const WALL_BUFFER = ELECTRON_RADIUS + 5;
@@ -53,7 +60,6 @@ class Ammeter{constructor(x1,y1,x2,y2){
   }
 
 }
-
 
 class Component {
 
@@ -270,7 +276,7 @@ class Component {
       }
 
 
-  draw(ctx, pdSelection, selectedObject){
+  draw(ctx, pdSelection, selectedObject, showLabel=true){
 
     ctx.lineWidth = 4;
 
@@ -307,20 +313,20 @@ class Component {
         );
       }
       
-
-    ctx.fillStyle = "black";
-    ctx.font = "10px Arial";
-    ctx.fillText(
-        this.type,
-        this.x + 5,
-        this.y - 5
-    );    
+    if(showLabel){
+      ctx.fillStyle = "black";
+      ctx.font = "10px Arial";
+      ctx.fillText(
+          this.type,
+          this.x + 5,
+          this.y - 5
+      );
+     }
     }
 
     
 
 }
-
 
 function createEmptyCell(){
   return {
@@ -328,9 +334,6 @@ function createEmptyCell(){
     material:null
   };
 }
-
-
-
 
 function buildCircuitMap(
   components,
@@ -417,8 +420,6 @@ function buildCircuitMap(
 
 }
 
-
-
 function insideCircuit(
 
   x,
@@ -500,8 +501,6 @@ function wallColour(material){
   return "#cccccc";
 }
 
-
-
 function drawWalls(
   ctx,
   map,
@@ -561,8 +560,6 @@ function drawWalls(
 
 }
 
-
-
 function moveElectron(
   electron,
   map,
@@ -617,14 +614,6 @@ function moveElectron(
   }
 
 }
-
-
-
-
-
-
-
-
 
 function repelElectrons(electrons, dt){
 
@@ -734,9 +723,6 @@ function applyBatteryForce(electrons, components, dt){
 
 }
 
-
-
-
 function grabComponent(
   component,
   electrons
@@ -774,12 +760,6 @@ function grabComponent(
 }
 
 
-
-
-
-
-
-
 function carryElectrons(
   electrons
 ){
@@ -797,8 +777,6 @@ function carryElectrons(
     }
   }
 }
-
-
 
 
 function releaseElectrons(
@@ -821,16 +799,17 @@ export default function App(){
   const selectedObject = useRef(null);
   const [, forceUpdate] = useState(0);
   const canvasRect =  canvasRef.current?.getBoundingClientRect();
-  const scaleX = canvasRect
-    ? canvasRect.width / canvasRef.current.width
-    : 1;
-  const scaleY = canvasRect
-    ? canvasRect.height / canvasRef.current.height
-    : 1;
+  const scaleX = canvasRect ? canvasRect.width / canvasRef.current.width : 1;
+  const scaleY = canvasRect ? canvasRect.height / canvasRef.current.height : 1;
   const pdSelection = useRef([]);
   const ammeters = useRef([]);
   const ammeterStart = useRef(null);
   const mousePos = useRef({x:0,y:0});
+
+//pd calc constants
+  const densityA = pdSelection.current[0] ? electronDensity(pdSelection.current[0]) : 0;
+  const densityB = pdSelection.current[1] ? electronDensity(pdSelection.current[1]) : 0;
+  const difference = densityA - densityB;
 
   function exportComponents(components) {
 
@@ -867,23 +846,7 @@ export default function App(){
 
           reader.onload = event => {
               const circuitData = JSON.parse(event.target.result);
-
-              // Clear existing circuit
-              components.current = [];
-              electrons.current = [];
-
-              // Rebuild circuit
-              circuitData.forEach(c => {
-                  addComponent(
-                      c.type,
-                      c.orientation,
-                      c.x,
-                      c.y,
-                      false
-                  );
-              });
-
-              forceUpdate(x=>x+1);
+              loadJSON(circuitData);
           };
 
           reader.readAsText(file);
@@ -893,7 +856,227 @@ export default function App(){
   }
 
   function loadFromPreset(){
-  alert("coming soon!")
+
+      const presets = [
+          {name:"Simple", json:simpleCircuit},
+          {name:"Series", json:seriesCircuit},
+          {name:"Parallel", json:parallelCircuit},
+          {name:"Capacitor", json:capacitorCircuit},
+          {name: "Rectangular plate", json:rectangularPlate},
+          {name: "Combination circuit", json:combinationCircuit}
+      ];
+
+      const overlay = document.createElement("div");
+
+      Object.assign(overlay.style,{
+          position:"fixed",
+          inset:"0",
+          background:"rgba(0,0,0,0.45)",
+          display:"flex",
+          justifyContent:"center",
+          alignItems:"center",
+          zIndex:1000
+      });
+
+
+      const panel = document.createElement("div");
+
+      const columns = Math.ceil(presets.length / 2);
+
+      Object.assign(panel.style,{
+          background:"white",
+          padding:"25px",
+          borderRadius:"14px",
+          display:"grid",
+          gridTemplateColumns:`repeat(${columns}, 200px)`,
+          gap:"18px",
+          boxShadow:"0 10px 40px rgba(0,0,0,0.25)"
+      });
+
+
+      for(const preset of presets){
+
+          const card = document.createElement("div");
+
+          Object.assign(card.style,{
+              cursor:"pointer",
+              textAlign:"center",
+              width:"200px",
+              height:"155px",
+              padding:"8px",
+              boxSizing:"border-box",
+              borderRadius:"10px",
+              transition:"transform 0.15s ease, box-shadow 0.15s ease",
+              background:"#fafafa",
+              display:"flex",
+              flexDirection:"column",
+              alignItems:"center"
+          });
+
+
+          card.onmouseenter = ()=>{
+              card.style.transform="scale(1.03)";
+              card.style.boxShadow="0 5px 15px rgba(0,0,0,0.18)";
+          };
+
+          card.onmouseleave = ()=>{
+              card.style.transform="scale(1)";
+              card.style.boxShadow="none";
+          };
+
+
+          const canvas = document.createElement("canvas");
+
+          canvas.width = 180;
+          canvas.height = 120;
+
+          Object.assign(canvas.style,{
+              width:"180px",
+              height:"120px",
+              border:"1px solid #ccc",
+              // borderRadius:"8px",
+              display:"block"
+          });
+
+          drawCircuitThumbnail(canvas,preset.json);
+
+
+          const label = document.createElement("div");
+
+          Object.assign(label.style,{
+              marginTop:"4px",
+              fontSize:"15px",
+              fontWeight:"500",
+              color:"#333",
+              lineHeight:"18px"
+          });
+
+          label.textContent = preset.name;
+
+
+          card.appendChild(canvas);
+          card.appendChild(label);
+
+
+          card.onclick = ()=>{
+              loadJSON(preset.json);
+              document.body.removeChild(overlay);
+          };
+
+
+          panel.appendChild(card);
+      }
+
+
+      overlay.onclick = e=>{
+          if(e.target===overlay)
+              document.body.removeChild(overlay);
+      };
+
+
+      overlay.appendChild(panel);
+      document.body.appendChild(overlay);
+  }
+  
+  function drawCircuitThumbnail(canvas, circuitData){
+
+      const ctx = canvas.getContext("2d");
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+
+      // Build temporary components
+      const previewComponents = circuitData.map(c =>
+          new Component(
+              c.type,
+              c.x,
+              c.y,
+              c.orientation
+          )
+      );
+
+      // Spawn temporary electrons
+      const previewElectrons = [];
+      for(const component of previewComponents){
+          component.spawnElectrons(previewElectrons);
+      }
+
+      // Calculate bounds
+      const bounds = getCircuitBounds(previewComponents);
+
+      const margin = 12;
+
+      const scale = Math.min(
+          (canvas.width - margin*2) / bounds.width,
+          (canvas.height - margin*2) / bounds.height
+      );
+
+      const offsetX =
+          (canvas.width - bounds.width*scale)/2
+          - bounds.left*scale;
+
+      const offsetY =
+          (canvas.height - bounds.height*scale)/2
+          - bounds.top*scale;
+
+      ctx.save();
+
+      ctx.translate(offsetX, offsetY);
+      ctx.scale(scale, scale);
+
+      // Draw components
+      for(const component of previewComponents){
+          component.draw(
+              ctx,
+              [],
+              {current:null}
+          );
+      }
+
+      // Draw electrons
+      drawElectrons(ctx, previewElectrons);
+
+      ctx.restore();
+  }
+
+  function getCircuitBounds(components){
+
+      let left = Infinity;
+      let top = Infinity;
+      let right = -Infinity;
+      let bottom = -Infinity;
+
+      for(const c of components){
+          left = Math.min(left, c.x);
+          top = Math.min(top, c.y);
+          right = Math.max(right, c.x + c.width);
+          bottom = Math.max(bottom, c.y + c.height);
+      }
+
+      return {
+          left,
+          top,
+          width: right - left,
+          height: bottom - top
+      };
+  }
+
+  function loadJSON(circuitData) {
+
+      // Clear existing circuit
+      components.current = [];
+      electrons.current = [];
+
+      // Rebuild circuit
+      circuitData.forEach(c => {
+          addComponent(
+              c.type,
+              c.orientation,
+              c.x,
+              c.y,
+              false
+          );
+      });
+
+      forceUpdate(x => x + 1);
   }
 
   function addComponent(type, orientation="horizontal", x=830, y=30, select=true){
@@ -1249,76 +1432,13 @@ export default function App(){
     ctx.setLineDash([]);
   }
 
-//pd calc constants
-    const densityA =
-    pdSelection.current[0]
-    ? electronDensity(pdSelection.current[0])
-    : 0;
 
-    const densityB =
-    pdSelection.current[1]
-    ? electronDensity(pdSelection.current[1])
-    : 0;
+const components = useRef([]);
 
-    const difference =
-    densityA - densityB;
-    
-// other constants
+useEffect(() => {
+    loadJSON(defaultCircuit);
+}, []);
 
-  const components = useRef(
-
-      defaultCircuit.map(c =>
-          new Component(
-              c.type,
-              c.x,
-              c.y,
-              c.orientation
-          )
-      )
-  );
-
-  // const components =
-  //   useRef([
-
-  //   new Component(
-  //   "battery",
-  //   550,
-  //   350,
-  //   "vertical"
-  //   ),
-
-  //   new Component(
-  //   "wire",
-  //   100,
-  //   150
-  //   ),
-
-  //   new Component(
-  //   "wire",
-  //   200,
-  //   450
-  //   ),
-
-  //   new Component(
-  //   "resistor",
-  //   500,
-  //   150,
-  //   "vertical"
-  //   )
-
-  //   ]);
-
-
-
-  useEffect(()=>{
-    for(
-      const component of components.current
-    ){
-      component.spawnElectrons(
-        electrons.current
-      );
-    }
-  },[]);
 
   useEffect(()=>{
     function keyDown(e){

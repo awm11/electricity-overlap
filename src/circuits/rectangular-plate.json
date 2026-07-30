@@ -1,0 +1,50 @@
+[
+  {
+    "type": "wire",
+    "x": 231,
+    "y": 63,
+    "orientation": "horizontal"
+  },
+  {
+    "type": "wire",
+    "x": 465,
+    "y": 62,
+    "orientation": "horizontal"
+  },
+  {
+    "type": "wire",
+    "x": 230,
+    "y": 114,
+    "orientation": "horizontal"
+  },
+  {
+    "type": "wire",
+    "x": 465,
+    "y": 115,
+    "orientation": "horizontal"
+  },
+  {
+    "type": "wire",
+    "x": 229,
+    "y": 168,
+    "orientation": "horizontal"
+  },
+  {
+    "type": "wire",
+    "x": 464,
+    "y": 169,
+    "orientation": "horizontal"
+  },
+  {
+    "type": "wire",
+    "x": 229,
+    "y": 217,
+    "orientation": "horizontal"
+  },
+  {
+    "type": "wire",
+    "x": 464,
+    "y": 218,
+    "orientation": "horizontal"
+  }
+]

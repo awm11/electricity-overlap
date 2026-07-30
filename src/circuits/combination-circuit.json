@@ -1,0 +1,62 @@
+[
+  {
+    "type": "battery",
+    "x": 162,
+    "y": 165,
+    "orientation": "vertical"
+  },
+  {
+    "type": "wire",
+    "x": 162,
+    "y": 106,
+    "orientation": "horizontal"
+  },
+  {
+    "type": "wire",
+    "x": 162,
+    "y": 345,
+    "orientation": "horizontal"
+  },
+  {
+    "type": "resistor",
+    "x": 368,
+    "y": 149,
+    "orientation": "vertical"
+  },
+  {
+    "type": "wire",
+    "x": 363,
+    "y": 76,
+    "orientation": "horizontal"
+  },
+  {
+    "type": "wire",
+    "x": 570,
+    "y": 344,
+    "orientation": "horizontal"
+  },
+  {
+    "type": "resistor",
+    "x": 740,
+    "y": 158,
+    "orientation": "vertical"
+  },
+  {
+    "type": "wire",
+    "x": 532,
+    "y": 102,
+    "orientation": "horizontal"
+  },
+  {
+    "type": "resistor",
+    "x": 398,
+    "y": 385,
+    "orientation": "horizontal"
+  },
+  {
+    "type": "wire",
+    "x": 573,
+    "y": 390,
+    "orientation": "horizontal"
+  }
+]

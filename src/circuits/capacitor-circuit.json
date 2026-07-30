@@ -1,0 +1,74 @@
+[
+  {
+    "type": "battery",
+    "x": 264,
+    "y": 287,
+    "orientation": "vertical"
+  },
+  {
+    "type": "wire",
+    "x": 195,
+    "y": 463,
+    "orientation": "horizontal"
+  },
+  {
+    "type": "wire",
+    "x": 699,
+    "y": 198,
+    "orientation": "horizontal"
+  },
+  {
+    "type": "wire",
+    "x": 698,
+    "y": 278,
+    "orientation": "horizontal"
+  },
+  {
+    "type": "wire",
+    "x": 319,
+    "y": 53,
+    "orientation": "horizontal"
+  },
+  {
+    "type": "wire",
+    "x": 548,
+    "y": 54,
+    "orientation": "horizontal"
+  },
+  {
+    "type": "wire",
+    "x": 791,
+    "y": 54,
+    "orientation": "vertical"
+  },
+  {
+    "type": "wire",
+    "x": 292,
+    "y": 53,
+    "orientation": "vertical"
+  },
+  {
+    "type": "wire",
+    "x": 789,
+    "y": 325,
+    "orientation": "vertical"
+  },
+  {
+    "type": "wire",
+    "x": 362,
+    "y": 462,
+    "orientation": "horizontal"
+  },
+  {
+    "type": "wire",
+    "x": 601,
+    "y": 463,
+    "orientation": "horizontal"
+  },
+  {
+    "type": "wire",
+    "x": 294,
+    "y": 174,
+    "orientation": "vertical"
+  }
+]
