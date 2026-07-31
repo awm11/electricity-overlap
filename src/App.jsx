@@ -805,11 +805,143 @@ export default function App(){
   const ammeters = useRef([]);
   const ammeterStart = useRef(null);
   const mousePos = useRef({x:0,y:0});
+  const pdReading = useRef({densityA: 0, densityB: 0, difference: 0, lastDisplayUpdate:0});
 
-//pd calc constants
-  const densityA = pdSelection.current[0] ? electronDensity(pdSelection.current[0]) : 0;
-  const densityB = pdSelection.current[1] ? electronDensity(pdSelection.current[1]) : 0;
-  const difference = densityA - densityB;
+    function showTips(){
+
+      const overlay = document.createElement("div");
+
+      Object.assign(overlay.style,{
+          position:"fixed",
+          inset:"0",
+          background:"rgba(0,0,0,0.45)",
+          display:"flex",
+          justifyContent:"center",
+          alignItems:"center",
+          zIndex:1000
+      });
+
+
+      const panel = document.createElement("div");
+
+      Object.assign(panel.style,{
+          background:"white",
+          width:"500px",
+          maxHeight:"70vh",
+          overflowY:"auto",
+          padding:"25px",
+          borderRadius:"14px",
+          boxShadow:"0 10px 40px rgba(0,0,0,0.3)",
+          fontSize:"15px",
+          lineHeight:"1.5",
+          color:"#333"
+      });
+
+      const title = document.createElement("h2");
+      title.textContent = "Tips & Help";
+
+      Object.assign(title.style,{
+          marginTop:"0",
+          marginBottom:"15px",
+          color:"#000"
+      });
+
+              // w - add new wire
+              // r - add new resistory
+              // b - add new battery
+              // shift + w/r/b - add new horizontal wire/resistor/battery
+
+      const content = document.createElement("div");
+
+      content.innerHTML = `
+          <p>
+              Welcome to the circuit simulator!
+          </p>
+
+          <h3>Controls</h3>
+
+          <p>
+              Click and drag components to move them around. Connect components
+              by overlapping them.
+          </p>
+
+
+          <h3>Hotkeys</h3>
+
+          <ul>
+              <li><b>Delete / Backspace</b> — delete selected object</li>
+              <li><b>I</b> — toggle current measurement</li>
+              <li><b>V</b> — toggle potential difference measurement</li>
+              <li><b>Esc</b> — deselect object / exit measurement mode</li>
+          </ul>
+
+
+          <h3>Tips & Notes</h3>
+
+          <p>
+              Remember that this is only a simulation (!) and some real circuit
+              behaviour is simplified or not represented accurately.
+          </p>
+
+          <ul>
+              <li>Electrons only repel each other within a limited range.</li>
+              <li>Electrons lose around 11% of their velocity every second.</li>
+              <li>
+                  Potential difference is calculated by comparing electron density
+                  in the two selected components.
+              </li>
+              <li>
+                  Battery voltage depends on current (as in the real world!), but
+                  also depends on the number of available electrons.
+              </li>
+              <li>
+                  Resistance does not always behave linearly. 🤷‍♂️
+              </li>
+              <li>
+                  Don't forget that wires have significant resistance when compared
+                  with the resistor.
+              </li>
+              <li>
+                  Connections work best when given a large contact area, rather than channelling electrons through a narrow gap.
+              </li>
+          </ul>
+      `;
+
+
+      const closeButton = document.createElement("button");
+
+      closeButton.textContent = "Close";
+
+      Object.assign(closeButton.style,{
+          marginTop:"20px",
+          padding:"8px 18px",
+          border:"none",
+          borderRadius:"8px",
+          cursor:"pointer",
+          background:"#ddd",
+          fontSize:"14px"
+      });
+
+
+      closeButton.onclick = ()=>{
+          document.body.removeChild(overlay);
+      };
+
+
+      panel.appendChild(title);
+      panel.appendChild(content);
+      panel.appendChild(closeButton);
+
+
+      overlay.onclick = e=>{
+          if(e.target===overlay)
+              document.body.removeChild(overlay);
+      };
+
+
+      overlay.appendChild(panel);
+      document.body.appendChild(overlay);
+  }
 
   function exportComponents(components) {
 
@@ -832,6 +964,7 @@ export default function App(){
 
       URL.revokeObjectURL(url);
   }
+
 
   function importCircuit() {
       const input = document.createElement("input");
@@ -1102,7 +1235,6 @@ export default function App(){
   
   function deleteSelectedObject(){
     const selected = selectedObject.current;
-    console.log(selected)
 
     if(!selected)
       return;
@@ -1282,8 +1414,8 @@ export default function App(){
     ctx.stroke();
     }
 
+//also cheeky computation of pdReading
   function drawPDMeasurement(ctx){
-
     if(pdSelection.current.length !== 2)
         return;
 
@@ -1337,21 +1469,61 @@ export default function App(){
     drawX(ctx,ax,ay);
     drawX(ctx,bx,by);
 
-}
+    if(pdSelection.current.length===2){
+
+
+    //also cheeky computation of pdReading
+    
+      const now = performance.now();
+      const densityA = electronDensity(pdSelection.current[0]);
+      const densityB = electronDensity(pdSelection.current[1]);
+
+    if(now - pdReading.current.lastDisplayUpdate > 500){
+        pdReading.current.densityA = densityA;
+        pdReading.current.densityB = densityB;
+        pdReading.current.difference = densityA - densityB;
+
+        pdReading.current.lastDisplayUpdate = now;
+
+        forceUpdate(x=>x+1);
+      }
+      }
+  }
 
   function drawAmmeterReadings(ctx, a){
 
-    ctx.fillStyle="red";
-    ctx.font="10px Arial";
+    const x = Math.max(a.x1,a.x2) + 10;
+    const y = a.y2 - 30;
+
+    ctx.fillStyle = "#ff9696c4";
+    ctx.strokeStyle = "#aa4a4a";
+    ctx.lineWidth = 1;
+
+    ctx.beginPath();
+    ctx.roundRect(
+      x - 5,
+      y - 15,
+      110,
+      45,
+      5
+    );
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = "#511";
+    ctx.font = "10px monospace";
+    ctx.textAlign = "left";
+
     ctx.fillText(
       `Last second: ${a.current}`,
-      Math.max(a.x1,a.x2) + 10,
-      a.y2
+      x,
+      y
     );
+
     ctx.fillText(
       `Last 5s: ${a.displayAverage}`,
-      Math.max(a.x1,a.x2) + 10,
-      a.y2 + 20
+      x,
+      y + 15
     );
   }
 
@@ -1435,18 +1607,44 @@ export default function App(){
 
 const components = useRef([]);
 
-useEffect(() => {
-    loadJSON(defaultCircuit);
-}, []);
-
+  useEffect(() => {
+      loadJSON(defaultCircuit);
+  }, []);
 
   useEffect(()=>{
     function keyDown(e){
       if(e.target.tagName==="INPUT")
         return;
 
-      if(e.key==="Delete" || e.key==="Backspace")
+      if(e.key==="Delete" || e.key==="Backspace"){
         deleteSelectedObject();
+        return;
+      }
+
+      if(e.key==="v"){
+        pdSelection.current = [];
+        // selectedComponent.current = null;
+        setTool(tool==="pd" ? null : "pd");
+        forceUpdate(v=>v+1);
+      }
+
+      if(e.key==="i"){
+        pdSelection.current = [];
+        // selectedComponent.current = null;
+        setTool(tool==="ammeter" ? null : "ammeter");
+        toolRef.current = "ammeter"
+        forceUpdate(v=>v+1);
+      }
+
+      if(e.key==="Escape"){
+        setTool(null);
+        pdSelection.current = [];
+        selectedObject.current = null;
+        forceUpdate(x=>x+1);
+        return;
+      }
+
+
     }
 
     window.addEventListener("keydown", keyDown);
@@ -1454,7 +1652,23 @@ useEffect(() => {
     return ()=>{
       window.removeEventListener("keydown", keyDown);
     };
-  },[]);
+  },[tool]);
+
+  // useEffect(()=>{
+  //   function keyDown(e){
+  //     if(e.target.tagName==="INPUT")
+  //       return;
+
+  //     if(e.key==="Delete" || e.key==="Backspace")
+  //       deleteSelectedObject();
+  //   }
+
+  //   window.addEventListener("keydown", keyDown);
+
+  //   return ()=>{
+  //     window.removeEventListener("keydown", keyDown);
+  //   };
+  // },[]);
 
   useEffect(()=>{
     let animationId;
@@ -1584,97 +1798,104 @@ useEffect(() => {
 
   },[]);
 
+function mouseDown(e){
+  const rect=canvasRef.current.getBoundingClientRect();
+  const x=e.clientX-rect.left;
+  const y=e.clientY-rect.top;
 
-  function mouseDown(e){
-    // alert("reached mouseDown")
+  if(tool==="ammeter"){
+    if(!ammeterStart.current){
+      ammeterStart.current={x,y};
+    }
+    else{
+      const ammeter=new Ammeter(
+        ammeterStart.current.x,
+        ammeterStart.current.y,
+        x,
+        y
+      );
 
-    const rect =
-      canvasRef.current
-      .getBoundingClientRect();
-    const x =
-      e.clientX -
-      rect.left;
-    const y =
-      e.clientY -
-      rect.top;
+      ammeters.current.push(ammeter);
+      selectedObject.current={
+        type:"ammeter",
+        object:ammeter
+      };
+      ammeterStart.current=null;
+    }
 
-    if(tool==="ammeter"){
-      if(!ammeterStart.current){
-        ammeterStart.current={x,y};
-      }
-      else{
-        const ammeter = new Ammeter(
-          ammeterStart.current.x,
-          ammeterStart.current.y,
-          x,
-          y
-        );
-        ammeters.current.push(ammeter);
-        selectedObject.current = {type:"ammeter", object:ammeter
-        };
-        ammeterStart.current=null;
-      }
+    forceUpdate(v=>v+1);
+    return;
+  }
+
+  for(const ammeter of ammeters.current){
+    if(ammeter.contains(x,y)){
+      selectedObject.current={
+        type:"ammeter",
+        object:ammeter
+      };
+      console.log("ready to drag")
+      dragging.current=ammeter;
+      console.log("dragging set")
+
+
+      dragOffset.current={
+        x:x-ammeter.x1,
+        y:y-ammeter.y1
+      };
 
       forceUpdate(v=>v+1);
       return;
     }
-
-    for(const ammeter of ammeters.current){
-      if(ammeter.contains(x,y)){
-        selectedObject.current = {
-          type:"ammeter",
-          object:ammeter
-        };
-        forceUpdate(v=>v+1);
-        return;
-      }
-    }
-
-    for(
-      const component of components.current
-    ){
-
-      if(component.contains(x,y)){
-        if(tool==="pd"){
-            if(component.type==="battery")
-            return;
-            if(pdSelection.current.length===2)
-            pdSelection.current=[];
-            pdSelection.current.push(component);
-            forceUpdate(v=>v+1);
-            return;
-        }
-
-        selectedObject.current = {type:"component", object:component};
-
-        dragging.current = component;
-        forceUpdate(v=>v+1);
-          component.placedX = -9999;
-          component.placedY = -9999;
-        dragOffset.current = {
-          x:
-          x - component.x,
-          y:
-          y - component.y
-        };
-        grabComponent(
-          component,
-          electrons.current
-        );
-        return;
-
-      }
-      
-    }
-
-    // clicked empty space
-    selectedObject.current = null;
-    pdSelection.current = [];
-    setTool(null);
-    forceUpdate(v=>v+1);
-
   }
 
+  for(const component of components.current){
+    if(component.contains(x,y)){
+
+      if(tool==="pd"){
+        if(component.type==="battery")
+          return;
+
+        if(pdSelection.current.length===2)
+          pdSelection.current=[];
+
+        pdSelection.current.push(component);
+        forceUpdate(v=>v+1);
+        return;
+      }
+
+      selectedObject.current={
+        type:"component",
+        object:component
+      };
+
+      dragging.current=component;
+
+      component.placedX=-9999;
+      component.placedY=-9999;
+
+      dragOffset.current={
+        x:x-component.x,
+        y:y-component.y
+      };
+
+      grabComponent(
+        component,
+        electrons.current
+      );
+
+      forceUpdate(v=>v+1);
+      return;
+    }
+  }
+
+
+  // clicked empty space
+  selectedObject.current = null;
+  pdSelection.current = [];
+  setTool(null);
+  forceUpdate(v=>v+1);
+
+}
 
 
   function mouseMove(e){
@@ -1689,8 +1910,29 @@ useEffect(() => {
     if(!dragging.current)
       return;
 
-    dragging.current.x = x - dragOffset.current.x;
-    dragging.current.y = y - dragOffset.current.y;
+    if(selectedObject.current?.type==="ammeter"){
+
+      const dx = 
+        x - dragOffset.current.x - dragging.current.x1;
+
+      const dy =
+        y - dragOffset.current.y - dragging.current.y1;
+
+      dragging.current.x1 += dx;
+      dragging.current.y1 += dy;
+      dragging.current.x2 += dx;
+      dragging.current.y2 += dy;
+
+    }
+    else{
+
+      dragging.current.x =
+        x - dragOffset.current.x;
+
+      dragging.current.y =
+        y - dragOffset.current.y;
+
+    }
   }
 
   function mouseUp(e){
@@ -1849,6 +2091,12 @@ useEffect(() => {
             >
               Load preset 💾
             </button>
+            <button
+              style={{background:"white", color:"black"}}
+              onClick={showTips}
+            >
+              Hotkeys 🔥
+            </button>
         </div>
 
 
@@ -1935,18 +2183,61 @@ useEffect(() => {
             position:"absolute",
             left:"10px",
             top:"33px",
-            background:"white",
-            border:"1px solid black",
+            background:"dark grey",
             padding:"3px",
-            width:"200px",
+            width:"00px",
             textAlign:"right",
             fontSize:"14px",
             zIndex:10
             }}
         >
-            <div>Component 1: {(densityA*100).toPrecision(2)} "volts" </div>
-            <div>Component 2: {(densityB*100).toPrecision(2)} "volts" </div>
-            <div>Difference: {(difference*100).toFixed(2)} "volts" </div>
+{/* pd readings display */}
+{pdSelection.current.length === 2 && (
+  <div
+    style={{
+      position:"absolute",
+      left:"40px",
+      top:"33px",
+      zIndex:10
+    }}
+  >
+    <div
+      style={{
+        background:"#dff5df",
+        border:"2px solid #5a8f5a",
+        borderRadius:"5px",
+        padding:"5px 7px",
+        width:"180px",
+        boxSizing:"border-box",
+        textAlign:"right",
+        fontFamily:"monospace",
+        fontSize:"12px",
+        lineHeight:"1.4",
+        boxShadow:"inset 0 0 6px rgba(0,80,0,0.2)",
+        color:"#123"
+      }}
+    >
+      <div>
+        Component 1: {(pdReading.current.densityA*100).toPrecision(2)} V
+      </div>
+
+      <div>
+        Component 2: {(pdReading.current.densityB*100).toPrecision(2)} V
+      </div>
+
+      <div
+        style={{
+          marginTop:"3px",
+          paddingTop:"3px",
+          borderTop:"1px solid #8ab58a",
+          fontWeight:"bold"
+        }}
+      >
+        Difference: {(pdReading.current.difference*100).toFixed(2)} V
+      </div>
+    </div>
+  </div>
+)}
         </div>
         )}
 
