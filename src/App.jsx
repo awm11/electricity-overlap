@@ -1490,42 +1490,81 @@ export default function App(){
       }
   }
 
-  function drawAmmeterReadings(ctx, a){
+function drawAmmeterReadings(ctx, a){
 
-    const x = Math.max(a.x1,a.x2) + 10;
-    const y = a.y2 - 30;
+  const x = Math.max(a.x1,a.x2) + 10;
+  const y = a.y2 - 25;
 
-    ctx.fillStyle = "#ff9696c4";
-    ctx.strokeStyle = "#aa4a4a";
-    ctx.lineWidth = 1;
+  ctx.fillStyle = "#ff9696c4";
+  ctx.strokeStyle = "#a85555";
+  ctx.lineWidth = 2;
 
-    ctx.beginPath();
-    ctx.roundRect(
-      x - 5,
-      y - 15,
-      110,
-      45,
-      5
-    );
-    ctx.fill();
-    ctx.stroke();
+  ctx.beginPath();
+  ctx.roundRect(
+    x - 5,
+    y - 15,
+    140,
+    45,
+    5
+  );
+  ctx.fill();
+  ctx.stroke();
 
-    ctx.fillStyle = "#511";
-    ctx.font = "10px monospace";
-    ctx.textAlign = "left";
+  ctx.fillStyle = "#123";
+  ctx.textAlign = "right";
+  ctx.font = "10px monospace";
 
-    ctx.fillText(
-      `Last second: ${a.current}`,
-      x,
-      y
-    );
+  ctx.fillText(
+    `Last second: ${a.current}`,
+    x + 130,
+    y
+  );
 
-    ctx.fillText(
-      `Last 5s: ${a.displayAverage}`,
-      x,
-      y + 15
-    );
-  }
+  ctx.font = "bold 10px monospace";
+
+  ctx.fillText(
+    `Last 5s: ${a.displayAverage}`,
+    x + 130,
+    y + 17
+  );
+}
+
+  // function drawAmmeterReadings(ctx, a){
+
+  //   const x = Math.max(a.x1,a.x2) + 10;
+  //   const y = a.y2 - 30;
+
+  //   ctx.fillStyle = "#ff9696c4";
+  //   ctx.strokeStyle = "#aa4a4a";
+  //   ctx.lineWidth = 1;
+
+  //   ctx.beginPath();
+  //   ctx.roundRect(
+  //     x - 5,
+  //     y - 15,
+  //     110,
+  //     45,
+  //     5
+  //   );
+  //   ctx.fill();
+  //   ctx.stroke();
+
+  //   ctx.fillStyle = "#511";
+  //   ctx.font = "10px monospace";
+  //   ctx.textAlign = "left";
+
+  //   ctx.fillText(
+  //     `Last second: ${a.current}`,
+  //     x,
+  //     y
+  //   );
+
+  //   ctx.fillText(
+  //     `Last 5s: ${a.displayAverage}`,
+  //     x,
+  //     y + 15
+  //   );
+  // }
 
   function drawAmmeterBack(ctx,a){
       const cx = (a.x1+a.x2)/2;
@@ -1998,7 +2037,7 @@ function mouseDown(e){
 
             <button
               style={{
-                background: tool==="ammeter" ? "deepskyblue" : "grey",
+                background: tool==="ammeter" ? "#ff6565fe" : "grey",
                 color:"white"
               }}
               onClick={()=>{
@@ -2116,7 +2155,7 @@ function mouseDown(e){
               ? canvasRect.left +
                 (
                   selectedObject.current.object.x +
-                  selectedObject.current.object.width - 40
+                  selectedObject.current.object.width - 30
                 ) * scaleX
               : canvasRect.left +
                 (
@@ -2126,53 +2165,69 @@ function mouseDown(e){
             top:
                 selectedObject.current.object.orientation === "vertical"
                 ? selectedObject.current.object.y +
-                    selectedObject.current.object.height/2 - 30
+                    selectedObject.current.object.height/2 + 35
                 : selectedObject.current.object.y +
-                    selectedObject.current.object.height + 40
+                    selectedObject.current.object.height + 60
             }}
         >
-            <input
+        <div
+          style={{
+            width:
+              selectedObject.current.object.orientation === "vertical"
+                ? "125px"
+                : "30px",
+            height:
+              selectedObject.current.object.orientation === "vertical"
+                ? "60px"
+                : "20px",
+            overflow:"visible"
+          }}
+        >
+          <input
             type="range"
             min="-3"
             max="3"
             step="0.5"
             value={selectedObject.current.object.voltage}
             onMouseDown={(e)=>{
-                e.stopPropagation();
+              e.stopPropagation();
             }}
             onChange={(e)=>{
-                selectedObject.current.object.voltage =
+              selectedObject.current.object.voltage =
                 Number(e.target.value);
-                forceUpdate(v=>v+1);
+              forceUpdate(v=>v+1);
             }}
             style={{
-                pointerEvents:"auto",
-                height:
-                selectedObject.current.object.orientation === "vertical"
-                    ? "100px"
-                    : undefined,
-                width:
-                selectedObject.current.object.orientation === "horizontal"
-                    ? "100px"
-                    : undefined,
-                transform:
-                selectedObject.current.object.orientation === "vertical"
-                    ? "rotate(270deg)"
-                    : "none"
-            }}
-            />
+              pointerEvents:"auto",
 
-            <div
-            style={{
-                textAlign: "center",
-                fontWeight: "bold",
-                marginTop: "4px"
+              width:
+                selectedObject.current.object.orientation === "vertical"
+                  ? "100px"
+                  : "100px",
+
+              height:
+                selectedObject.current.object.orientation === "vertical"
+                  ? "12px"
+                  : "12px",
+
+              transform:
+                selectedObject.current.object.orientation === "vertical"
+                  ? "rotate(270deg)"
+                  : "none"
             }}
-            >
-            {selectedObject.current.object.voltage} V
-            </div>
+          />
         </div>
-        )}
+                    <div
+                    style={{
+                        textAlign: "center",
+                        fontWeight: "bold",
+                        marginTop: "4px"
+                    }}
+                    >
+                    {selectedObject.current.object.voltage} V
+                    </div>
+                </div>
+                )}
 
 
 {/* pd readings display*/}
